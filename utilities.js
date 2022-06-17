@@ -31,7 +31,7 @@ exports.dijkstraAlgorithm1 = (startNode) => {
   return distances;
 };
 
-exports.dijkstraAlgorithm2 = (layout = {}, startNode) => {
+exports.dijkstraAlgorithm2 = (layout = {}, startNode, linkWeights = {}) => {
   // var layout = {
   //   'R': ['2'],
   //   '2': ['3','4'],
@@ -39,9 +39,9 @@ exports.dijkstraAlgorithm2 = (layout = {}, startNode) => {
   for (var id in layout) {
     if (!graph[id]) graph[id] = {};
     layout[id].forEach(function (aid) {
-      graph[id][aid] = 1;
+      graph[id][aid] = linkWeights[id + "-" + aid] ?? 1;
       if (!graph[aid]) graph[aid] = {};
-      graph[aid][id] = 1;
+      graph[aid][id] = linkWeights[id + "-" + aid] ?? 1;
     });
   }
 
@@ -207,10 +207,12 @@ exports.monitorLinks = (nextTraffic) => {
 
 exports.generateNextTraffic = () => {};
 
-exports.initializeLinkLoad = (graphLayout) => {
+exports.initializeLinkLoad = (graphLayout, max = 5, min = 1) => {
   Object.keys(graphLayout).forEach((node) => {
     graphLayout[node].forEach((adj) => {
-      matrices.linkLoad[node + "-" + adj] = 0;
+      matrices.linkLoad[node + "-" + adj] = Math.floor(
+        Math.random() * (max - min + 1) + min
+      );
     });
   });
   // Object.keys(this.graphLayout)

@@ -8,6 +8,18 @@ exports.graphLayout = {
   7: [],
 };
 
+exports.graphLayout2 = {
+  headEnd: [2, 4, 7],
+  2: [3, 7],
+  3: [5, 6],
+  4: [5, 6, 9],
+  5: [6, 8, 9],
+  6: [9],
+  7: [8],
+  8: [9],
+  9: [],
+};
+
 exports.currentTraffic = {
   f1: { destination: 7, class: "c1" },
   f2: { destination: 4, class: "c2" },
