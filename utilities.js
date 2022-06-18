@@ -1,5 +1,31 @@
 const matrices = require("./matrices");
 
+exports.getLinkWeightBasedOnTrafficClass = ({
+  link,
+  linkStatus,
+  linkLoad,
+  trafficClass,
+  trafficRequirement,
+}) => {
+  console.log(trafficRequirement.criteria);
+  if (linkStatus.up)
+    if (trafficRequirement.criteria === "delay") {
+      //  ترکیبی از فاصله و تاخیر با نسبت یک به دو
+      return trafficRequirement["delay"] + 0.5 * linkStatus.distance;
+    } else if (trafficRequirement.criteria === "normal") {
+      //  ترکیبی از فاصله و تاخیر و پهنای باند با نسبت یک
+      return (
+        trafficRequirement["delay"] +
+        trafficRequirement["bandwidth"] +
+        linkStatus.distance
+      );
+    } else if (trafficRequirement.criteria === "bandwidth") {
+      //  ترکیبی از فاصله و پهنای باند با نسبت یک به دو
+      return trafficRequirement["bandwidth"] + 0.5 * linkStatus.distance;
+    }
+  return Infinity;
+};
+
 exports.dijkstraAlgorithm1 = (startNode) => {
   let distances = {};
 
@@ -31,32 +57,38 @@ exports.dijkstraAlgorithm1 = (startNode) => {
   return distances;
 };
 
-exports.dijkstraAlgorithm2 = (layout = {}, startNode, linkWeights = {}) => {
+exports.dijkstraAlgorithm2 = ({
+  layout = {},
+  startNode,
+  networkStatus,
+  networkLoad = {},
+  trafficClass,
+}) => {
+  const trafficRequirement = matrices.trafficRequirement;
+  console.log(trafficRequirement, "trafficRequirement");
+  const self = this;
   // var layout = {
   //   'R': ['2'],
   //   '2': ['3','4'],
   let graph = {};
+  //convert uni-directional to bi-directional graph
   for (var id in layout) {
     if (!graph[id]) graph[id] = {};
     layout[id].forEach(function (aid) {
-      graph[id][aid] = linkWeights[id + "-" + aid] ?? 1;
+      let linkWeight = self.getLinkWeightBasedOnTrafficClass({
+        link: id + "-" + aid,
+        linkStatus: networkStatus[id + "-" + aid],
+        linkLoad: networkLoad[id + "-" + aid],
+        trafficClass,
+        trafficRequirement: trafficRequirement[trafficClass],
+      });
+      console.log(linkWeight);
+      graph[id][aid] = linkWeight;
       if (!graph[aid]) graph[aid] = {};
-      graph[aid][id] = linkWeights[id + "-" + aid] ?? 1;
+      graph[aid][id] = linkWeight;
     });
   }
-
-  //convert uni-directional to bi-directional graph
-  // needs to look like: where: { a: { b: cost of a->b }
-  // var graph = {
-  //     a: {e:1, b:1, g:3},
-  //     b: {a:1, c:1},
-  //     c: {b:1, d:1},
-  //     d: {c:1, e:1},
-  //     e: {d:1, a:1},
-  //     f: {g:1, h:1},
-  //     g: {a:3, f:1},
-  //     h: {f:1}
-  // };
+  console.log(graph);
 
   var solutions = {};
   solutions[startNode] = [];
@@ -207,10 +239,10 @@ exports.monitorLinks = (nextTraffic) => {
 
 exports.generateNextTraffic = () => {};
 
-exports.initializeLinkLoad = (graphLayout, max = 5, min = 1) => {
+exports.initializeNetworkLinksLoad = (graphLayout, max = 5, min = 1) => {
   Object.keys(graphLayout).forEach((node) => {
     graphLayout[node].forEach((adj) => {
-      matrices.linkLoad[node + "-" + adj] = Math.floor(
+      matrices.networkLoad[node + "-" + adj] = Math.floor(
         Math.random() * (max - min + 1) + min
       );
     });
@@ -224,12 +256,13 @@ exports.initializeLinkLoad = (graphLayout, max = 5, min = 1) => {
   //   .flat();
 };
 
-exports.initializeLinkStatus = (linkLoad) => {
-  Object.keys(linkLoad).forEach((link) => {
-    matrices.linkStatus[link] = {
+exports.initializeNetworkLinksStatuses = (networkLoad, max = 50, min = 1) => {
+  Object.keys(networkLoad).forEach((link) => {
+    matrices.networkStatus[link] = {
       up: true,
-      bandwidth: Math.floor(Math.random() * 50),
-      delay: Math.floor(Math.random() * 50),
+      bandwidth: Math.floor(Math.random() * (max - min + 1) + min),
+      delay: Math.floor(Math.random() * (max - min + 1) + min),
+      distance: Math.floor(Math.random() * (max - min + 1) + min),
     };
   });
 };

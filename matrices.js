@@ -8,18 +8,6 @@ exports.graphLayout = {
   7: [],
 };
 
-exports.graphLayout2 = {
-  headEnd: [2, 4, 7],
-  2: [3, 7],
-  3: [5, 6],
-  4: [5, 6, 9],
-  5: [6, 8, 9],
-  6: [9],
-  7: [8],
-  8: [9],
-  9: [],
-};
-
 exports.currentTraffic = {
   f1: { destination: 7, class: "c1" },
   f2: { destination: 4, class: "c2" },
@@ -46,16 +34,16 @@ exports.nextTraffic = {
   f10: { destination: 3, class: "c2" },
 };
 
-exports.linkLoad = {};
+exports.networkLoad = {};
 
-exports.linkStatus = {};
+exports.networkStatus = {};
 
 // p*2
-exports.trafficRequirement = [
-  { c1: { delay: 10, bandwidth: 10 } }, // delay
-  { c2: { delay: 30, bandwidth: 20 } }, // normal
-  { c3: { delay: 50, bandwidth: 50 } }, // bandwidth
-];
+exports.trafficRequirement = {
+  c1: { delay: 10, bandwidth: 10, criteria: "delay" }, // delay
+  c2: { delay: 30, bandwidth: 20, criteria: "normal" }, // normal
+  c3: { delay: 50, bandwidth: 50, criteria: "bandwidth" }, // bandwidth
+};
 
 //each flow take what path
 exports.routingMatrix = [];

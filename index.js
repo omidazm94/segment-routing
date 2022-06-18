@@ -1,36 +1,20 @@
 const utilities = require("./utilities");
 const matrices = require("./matrices");
 
-utilities.initializeLinkLoad(matrices.graphLayout2);
-// let linkLoad = matrices.linkLoad; // this is load on each link it also can be used to find certain links
-let linkLoad = {
-  "2-3": 1,
-  "2-7": 2,
-  "3-5": 1,
-  "3-6": 1,
-  "4-5": 5,
-  "4-6": 5,
-  "4-9": 4,
-  "5-6": 3,
-  "5-8": 1,
-  "5-9": 1,
-  "6-9": 1,
-  "7-8": 1,
-  "8-9": 3,
-  "headEnd-2": 3,
-  "headEnd-4": 2,
-  "headEnd-7": 2,
-};
+utilities.initializeNetworkLinksLoad(matrices.graphLayout);
+let networkLoad = matrices.networkLoad; // this is load on each link it also can be used to find certain links
 
-utilities.initializeLinkStatus(linkLoad);
-let linkStatus = matrices.linkStatus;
+utilities.initializeNetworkLinksStatuses(networkLoad);
+let networkStatus = matrices.networkStatus;
 
-console.log(linkLoad);
-console.log(linkStatus);
+console.log(networkLoad);
+console.log(networkStatus);
 
-let sol = utilities.dijkstraAlgorithm2(
-  matrices.graphLayout2,
-  "headEnd",
-  linkLoad
-);
+let sol = utilities.dijkstraAlgorithm2({
+  layout: matrices.graphLayout,
+  startNode: "headEnd",
+  networkStatus,
+  networkLoad,
+  trafficClass: matrices.currentTraffic["f1"].class,
+});
 console.log(sol, "final solution");
