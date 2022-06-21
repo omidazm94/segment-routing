@@ -6,8 +6,8 @@ exports.getLinkWeightBasedOnTrafficClass = ({
   linkLoad,
   trafficClass,
   trafficRequirement,
+  maxBandwidth,
 }) => {
-  console.log(trafficRequirement.criteria);
   if (linkStatus.up)
     if (trafficRequirement.criteria === "delay") {
       //  ترکیبی از فاصله و تاخیر با نسبت یک به دو
@@ -16,12 +16,16 @@ exports.getLinkWeightBasedOnTrafficClass = ({
       //  ترکیبی از فاصله و تاخیر و پهنای باند با نسبت یک
       return (
         trafficRequirement["delay"] +
-        trafficRequirement["bandwidth"] +
+        (maxBandwidth - trafficRequirement["bandwidth"]) +
         linkStatus.distance
       );
     } else if (trafficRequirement.criteria === "bandwidth") {
       //  ترکیبی از فاصله و پهنای باند با نسبت یک به دو
-      return trafficRequirement["bandwidth"] + 0.5 * linkStatus.distance;
+      return (
+        maxBandwidth -
+        trafficRequirement["bandwidth"] +
+        0.5 * linkStatus.distance
+      );
     }
   return Infinity;
 };
@@ -63,6 +67,7 @@ exports.dijkstraAlgorithm2 = ({
   networkStatus,
   networkLoad = {},
   trafficClass,
+  maxBandwidth,
 }) => {
   const trafficRequirement = matrices.trafficRequirement;
   console.log(trafficRequirement, "trafficRequirement");
@@ -81,14 +86,14 @@ exports.dijkstraAlgorithm2 = ({
         linkLoad: networkLoad[id + "-" + aid],
         trafficClass,
         trafficRequirement: trafficRequirement[trafficClass],
+        maxBandwidth,
       });
-      console.log(linkWeight);
       graph[id][aid] = linkWeight;
       if (!graph[aid]) graph[aid] = {};
       graph[aid][id] = linkWeight;
     });
   }
-  console.log(graph);
+  // console.log(graph);
 
   var solutions = {};
   solutions[startNode] = [];
