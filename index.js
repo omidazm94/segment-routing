@@ -14,7 +14,8 @@ console.log(networkStatus);
 Object.keys(matrices.currentTraffic).map((flow) => {
   console.log(flow);
   console.log(matrices.currentTraffic[flow].class);
-  let sol = utilities.dijkstraAlgorithm2({
+
+  let sol = utilities.dijkstraAlgorithm({
     layout: matrices.graphLayout,
     startNode: "headEnd",
     networkStatus,

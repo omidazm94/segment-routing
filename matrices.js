@@ -34,8 +34,10 @@ exports.nextTraffic = {
   f10: { destination: 3, class: "c2" },
 };
 
+// bandwidth load on each network link
 exports.networkLoad = {};
 
+// status info of each link. up, bandwidth, delay
 exports.networkStatus = {};
 
 // p*2
@@ -45,5 +47,11 @@ exports.trafficRequirement = {
   c3: { delay: 50, bandwidth: 50, criteria: "bandwidth" }, // bandwidth
 };
 
-//each flow take what path
-exports.routingMatrix = [];
+// each flow take what path. for example destination: cp1
+exports.routingMatrix = {};
+
+// each flow used what candidate path. for example cp1 : status : 'available , path'['a-b' , 'c-d']
+exports.candidatePathMatrix = {};
+
+// this can be used if for each destination two candidate path has been found
+// exports.policyMatrix = [];

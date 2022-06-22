@@ -1,73 +1,72 @@
 const matrices = require("./matrices");
 
-exports.getLinkWeightBasedOnTrafficClass = ({
-  link,
-  linkStatus,
-  linkLoad,
+exports.checkAvailablePath = ({
+  flow,
+  destination,
   trafficClass,
-  trafficRequirement,
+  bandwidthReq,
+  delayReq,
   maxBandwidth,
 }) => {
-  if (linkStatus.up)
-    if (trafficRequirement.criteria === "delay") {
-      //  ترکیبی از فاصله و تاخیر با نسبت یک به دو
-      return trafficRequirement["delay"] + 0.5 * linkStatus.distance;
-    } else if (trafficRequirement.criteria === "normal") {
-      //  ترکیبی از فاصله و تاخیر و پهنای باند با نسبت یک
-      return (
-        trafficRequirement["delay"] +
-        (maxBandwidth - trafficRequirement["bandwidth"]) +
-        linkStatus.distance
-      );
-    } else if (trafficRequirement.criteria === "bandwidth") {
-      //  ترکیبی از فاصله و پهنای باند با نسبت یک به دو
-      return (
-        maxBandwidth -
-        trafficRequirement["bandwidth"] +
-        0.5 * linkStatus.distance
-      );
-    }
-  return Infinity;
-};
+  let candidatePathKey = matrices.routingMatrix[flow];
+  let candidatePath = matrices.candidatePathMatrix[candidatePathKey];
 
-exports.dijkstraAlgorithm1 = (startNode) => {
-  let distances = {};
-
-  // Stores the reference to previous nodes
-  let prev = {};
-  let pq = new PriorityQueue(this.nodes.length * this.nodes.length);
-
-  // Set distances to all nodes to be infinite except startNode
-  distances[startNode] = 0;
-  pq.enqueue(startNode, 0);
-  this.nodes.forEach((node) => {
-    if (node !== startNode) distances[node] = Infinity;
-    prev[node] = null;
-  });
-
-  while (!pq.isEmpty()) {
-    let minNode = pq.dequeue();
-    let currNode = minNode.data;
-    let weight = minNode.priority;
-    this.edges[currNode].forEach((neighbor) => {
-      let alt = distances[currNode] + neighbor.weight;
-      if (alt < distances[neighbor.node]) {
-        distances[neighbor.node] = alt;
-        prev[neighbor.node] = currNode;
-        pq.enqueue(neighbor.node, distances[neighbor.node]);
+  //if candidate path for this flow is available
+  if (candidatePathKey && candidatePath.status) {
+    candidatePath.forEach((linkId) => {
+      let status = this.checkLinkLoad({ linkId, bandwidthReq, delayReq });
+      if (status.available) {
+        matrices.routingMatrix[flow] = candidatePathKey;
+        return candidatePath.path;
+      } else {
+        matrices.candidatePathMatrix[candidatePathKey] = {
+          path: candidatePath,
+          status: false,
+        };
+        candidatePathKey = "cp" + matrices.candidatePathMatrix.length;
+        candidatePath = dijkstraAlgorithm({
+          layout: matrices.graphLayout,
+          networkStatus: matrices.networkStatus,
+          networkLoad: matrices.networkLoad,
+          trafficClass,
+          maxBandwidth,
+          destination,
+        });
+        matrices.routingMatrix[flow] = candidatePathKey;
+        matrices.candidatePathMatrix[candidatePathKey] = {
+          path: candidatePath,
+          status: true,
+        };
+        return candidatePath.path;
       }
     });
+  } else {
+    candidatePathKey = "cp" + matrices.candidatePathMatrix.length;
+    candidatePath = dijkstraAlgorithm({
+      layout: matrices.graphLayout,
+      networkStatus: matrices.networkStatus,
+      networkLoad: matrices.networkLoad,
+      trafficClass,
+      maxBandwidth,
+      destination,
+    });
+    matrices.routingMatrix[flow] = candidatePathKey;
+    matrices.candidatePathMatrix[candidatePathKey] = {
+      path: candidatePath,
+      status: true,
+    };
+    return candidatePath.path;
   }
-  return distances;
 };
 
-exports.dijkstraAlgorithm2 = ({
+exports.dijkstraAlgorithm = ({
   layout = {},
-  startNode,
+  startNode = "headEnd",
   networkStatus,
   networkLoad = {},
   trafficClass,
   maxBandwidth,
+  destination,
 }) => {
   const trafficRequirement = matrices.trafficRequirement;
   console.log(trafficRequirement, "trafficRequirement");
@@ -81,96 +80,23 @@ exports.dijkstraAlgorithm2 = ({
     if (!graph[id]) graph[id] = {};
     layout[id].forEach(function (aid) {
       let linkWeight = self.getLinkWeightBasedOnTrafficClass({
-        link: id + "-" + aid,
+        linkId: id + "-" + aid,
         linkStatus: networkStatus[id + "-" + aid],
         linkLoad: networkLoad[id + "-" + aid],
-        trafficClass,
         trafficRequirement: trafficRequirement[trafficClass],
         maxBandwidth,
       });
+      console.log(linkWeight);
       graph[id][aid] = linkWeight;
       if (!graph[aid]) graph[aid] = {};
       graph[aid][id] = linkWeight;
     });
   }
-  // console.log(graph);
-
-  var solutions = {};
-  solutions[startNode] = [];
-  solutions[startNode].dist = 0;
-
-  while (true) {
-    var parent = null;
-    var nearest = null;
-    var dist = Infinity;
-
-    //for each existing solution
-    //distance is calculated from starting node
-    for (var currentNode in solutions) {
-      if (!solutions[currentNode]) continue;
-      var distanceToCurrentNode = solutions[currentNode].dist;
-      var adj = graph[currentNode];
-      //for each of its adjacent nodes...
-      for (var currentAdj in adj) {
-        //without a solution already...
-        if (solutions[currentAdj]) continue;
-        //choose nearest node with lowest *total* cost
-        var distanceFromCurrentAdj = adj[currentAdj] + distanceToCurrentNode;
-        if (distanceFromCurrentAdj < dist) {
-          //reference parent
-          parent = solutions[currentNode];
-          nearest = currentAdj;
-          dist = distanceFromCurrentAdj;
-        }
-      }
-    }
-
-    //no more solutions
-    if (dist === Infinity) {
-      break;
-    }
-
-    //extend parent's solution path
-    solutions[nearest] = parent.concat(nearest);
-    //extend parent's cost
-    solutions[nearest].dist = dist;
-  }
-
-  return solutions;
-};
-
-exports.dijkstraAlgorithmWithConsole = (layout = {}, startNode) => {
-  // var layout = {
-  //   '1': ['2'],
-  //   '2': ['3','4'],
-  let graph = {};
-  for (var id in layout) {
-    if (!graph[id]) graph[id] = {};
-    layout[id].forEach(function (aid) {
-      graph[id][aid] = 1;
-      if (!graph[aid]) graph[aid] = {};
-      graph[aid][id] = 1;
-    });
-  }
   console.log(graph);
 
-  //convert uni-directional to bi-directional graph
-  // needs to look like: where: { a: { b: cost of a->b }
-  // var graph = {
-  //     a: {e:1, b:1, g:3},
-  //     b: {a:1, c:1},
-  //     c: {b:1, d:1},
-  //     d: {c:1, e:1},
-  //     e: {d:1, a:1},
-  //     f: {g:1, h:1},
-  //     g: {a:3, f:1},
-  //     h: {f:1}
-  // };
-
   var solutions = {};
   solutions[startNode] = [];
   solutions[startNode].dist = 0;
-  console.log(solutions, "solutions");
 
   while (true) {
     var parent = null;
@@ -182,24 +108,22 @@ exports.dijkstraAlgorithmWithConsole = (layout = {}, startNode) => {
     for (var currentNode in solutions) {
       if (!solutions[currentNode]) continue;
       var distanceToCurrentNode = solutions[currentNode].dist;
-      console.log(distanceToCurrentNode, "ndist");
       var adj = graph[currentNode];
-      console.log(adj, "adj of" + currentNode);
       //for each of its adjacent nodes...
       for (var currentAdj in adj) {
         //without a solution already...
         if (solutions[currentAdj]) continue;
         //choose nearest node with lowest *total* cost
         var distanceFromCurrentAdj = adj[currentAdj] + distanceToCurrentNode;
-        console.log(distanceFromCurrentAdj, "d");
+        console.log(currentNode);
+        console.log(currentAdj);
+        console.log(distanceFromCurrentAdj);
+        console.log(distanceFromCurrentAdj < dist);
         if (distanceFromCurrentAdj < dist) {
           //reference parent
           parent = solutions[currentNode];
-          console.log(parent, "parent of " + currentNode);
           nearest = currentAdj;
-          console.log(nearest, "nearest to" + currentNode);
           dist = distanceFromCurrentAdj;
-          console.log(dist, "dist from " + currentNode);
         }
       }
     }
@@ -211,27 +135,65 @@ exports.dijkstraAlgorithmWithConsole = (layout = {}, startNode) => {
 
     //extend parent's solution path
     solutions[nearest] = parent.concat(nearest);
-    console.log("solution after loop", solutions);
     //extend parent's cost
     solutions[nearest].dist = dist;
-    console.log("solution after loop", solutions);
   }
 
-  return solutions;
+  return solutions[destination];
 };
 
-exports.checkLinkLoad = () => {
-  Object.keys(matrices.linkStatus).forEach((link) => {
-    if (!link.up) return { status: "link-failed", link };
+exports.getLinkWeightBasedOnTrafficClass = ({
+  linkId,
+  linkStatus,
+  linkLoad,
+  trafficRequirement,
+  maxBandwidth,
+}) => {
+  let status = this.checkLinkLoad({
+    linkId,
+    bandwidthReq: trafficRequirement.bandwidth,
+    delayReq: trafficRequirement.delay,
   });
-  Object.keys(matrices.linkLoad).forEach((link) => {
-    if (matrices.linkLoad[link] > matrices.linkStatus[link].bandwidth)
-      return { status: "congestion", link };
-  });
+  if (status.available)
+    if (trafficRequirement.criteria === "delay") {
+      return trafficRequirement["delay"] + 0.5 * linkStatus.distance;
+    } else if (trafficRequirement.criteria === "normal") {
+      return (
+        trafficRequirement["delay"] +
+        (maxBandwidth - trafficRequirement["bandwidth"]) +
+        linkStatus.distance
+      );
+    } else if (trafficRequirement.criteria === "bandwidth") {
+      return (
+        maxBandwidth -
+        trafficRequirement["bandwidth"] +
+        0.5 * linkStatus.distance
+      );
+    }
+  return Infinity;
+};
+
+exports.checkLinkLoad = ({ linkId, bandwidthReq, delayReq }) => {
+  let linkStatus = matrices.networkStatus[linkId];
+
+  // بررسی بالا بودن لینک
+  if (!linkStatus.up) return { available: false, status: "failed" };
+  // if available bandwidth is enough or delay requirement has been met or not
+  if (
+    linkStatus.bandwidth - matrices.networkLoad[linkId] < bandwidthReq ||
+    linkStatus.delay > delayReq
+  )
+    return { available: false, status: "!qos" };
+  return { available: true, status: "success" };
 };
 
 //checks if there is a chance to congestion occurrence
 exports.monitorLinks = (nextTraffic) => {
+  // Object.keys(matrices.linkStatus).forEach((link) => {
+  //   if (!link.up) return "failed";
+  //   if (matrices.networkLoad[link] > matrices.linkStatus[link].bandwidth)
+  //     return "congestion";
+  // });
   let status = this.checkLinkLoad();
   if (status === "link-failed") {
     // reroute by calling dijkstra algorithm
@@ -244,7 +206,7 @@ exports.monitorLinks = (nextTraffic) => {
 
 exports.generateNextTraffic = () => {};
 
-exports.initializeNetworkLinksLoad = (graphLayout, max = 5, min = 1) => {
+exports.initializeNetworkLinksLoad = (graphLayout, max = 10, min = 1) => {
   Object.keys(graphLayout).forEach((node) => {
     graphLayout[node].forEach((adj) => {
       matrices.networkLoad[node + "-" + adj] = Math.floor(
@@ -252,21 +214,14 @@ exports.initializeNetworkLinksLoad = (graphLayout, max = 5, min = 1) => {
       );
     });
   });
-  // Object.keys(this.graphLayout)
-  //   .map((node) => {
-  //     return this.graphLayout[node].map((adj) => {
-  //       return { [node + "-" + adj]: 0 };
-  //     });
-  //   })
-  //   .flat();
 };
 
-exports.initializeNetworkLinksStatuses = (networkLoad, max = 50, min = 1) => {
+exports.initializeNetworkLinksStatuses = (networkLoad, max = 50, min = 30) => {
   Object.keys(networkLoad).forEach((link) => {
     matrices.networkStatus[link] = {
       up: true,
       bandwidth: Math.floor(Math.random() * (max - min + 1) + min),
-      delay: Math.floor(Math.random() * (max - min + 1) + min),
+      delay: Math.floor(Math.random() * (max - (min - 20) + 1) + (min - 20)),
       distance: Math.floor(Math.random() * (max - min + 1) + min),
     };
   });
