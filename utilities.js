@@ -24,7 +24,7 @@ exports.checkAvailablePath = ({
           status: false,
         };
         candidatePathKey = "cp" + matrices.candidatePathMatrix.length;
-        candidatePath = dijkstraAlgorithm({
+        candidatePath = this.dijkstraAlgorithm({
           layout: matrices.graphLayout,
           networkStatus: matrices.networkStatus,
           networkLoad: matrices.networkLoad,
@@ -37,12 +37,12 @@ exports.checkAvailablePath = ({
           path: candidatePath,
           status: true,
         };
-        return candidatePath.path;
+        return candidatePath;
       }
     });
   } else {
     candidatePathKey = "cp" + matrices.candidatePathMatrix.length;
-    candidatePath = dijkstraAlgorithm({
+    candidatePath = this.dijkstraAlgorithm({
       layout: matrices.graphLayout,
       networkStatus: matrices.networkStatus,
       networkLoad: matrices.networkLoad,
@@ -55,7 +55,7 @@ exports.checkAvailablePath = ({
       path: candidatePath,
       status: true,
     };
-    return candidatePath.path;
+    return candidatePath;
   }
 };
 
@@ -69,7 +69,6 @@ exports.dijkstraAlgorithm = ({
   destination,
 }) => {
   const trafficRequirement = matrices.trafficRequirement;
-  console.log(trafficRequirement, "trafficRequirement");
   const self = this;
   // var layout = {
   //   'R': ['2'],
@@ -86,13 +85,12 @@ exports.dijkstraAlgorithm = ({
         trafficRequirement: trafficRequirement[trafficClass],
         maxBandwidth,
       });
-      console.log(linkWeight);
+
       graph[id][aid] = linkWeight;
       if (!graph[aid]) graph[aid] = {};
       graph[aid][id] = linkWeight;
     });
   }
-  console.log(graph);
 
   var solutions = {};
   solutions[startNode] = [];
@@ -115,10 +113,7 @@ exports.dijkstraAlgorithm = ({
         if (solutions[currentAdj]) continue;
         //choose nearest node with lowest *total* cost
         var distanceFromCurrentAdj = adj[currentAdj] + distanceToCurrentNode;
-        console.log(currentNode);
-        console.log(currentAdj);
-        console.log(distanceFromCurrentAdj);
-        console.log(distanceFromCurrentAdj < dist);
+
         if (distanceFromCurrentAdj < dist) {
           //reference parent
           parent = solutions[currentNode];
