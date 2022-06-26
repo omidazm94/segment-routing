@@ -1,5 +1,5 @@
 exports.graphLayout = {
-  headEnd: ["2", "3", "5"],
+  "head-end": ["2", "3", "5"],
   2: ["3", "4", "5", "6", "7"],
   3: ["4", "6"],
   4: ["7"],
@@ -47,11 +47,40 @@ exports.trafficRequirement = {
   c3: { delay: 50, bandwidth: 50, criteria: "bandwidth" }, // bandwidth
 };
 
-// each flow take what path. for example destination: cp1
+/*
+   each flow take what path. for example flow : BSID
+*/
 exports.routingMatrix = {};
 
-// each flow used what candidate path. for example cp1 : status : 'available , path'['a-b' , 'c-d']
+/*
+  this can be used if for each destination two candidate path has been found
+  (head-end, destination, color)
+  {
+    source : {
+      destination : candidate-path key
+    }
+  }
+*/
+exports.policyMatrix = [];
+
+/* 
+  each flow used what candidate path. for example cp1 : status : 'available , path'['a-b' , 'c-d']
+  (preference, metric, segment list)
+  {
+    candidate-path key:{
+      segmentList:[],
+      preference: number,
+      metric : class,
+      status : boolean
+    }
+  }
+*/
 exports.candidatePathMatrix = {};
 
-// this can be used if for each destination two candidate path has been found
-// exports.policyMatrix = [];
+/*
+  map BSID to source and destination
+  BSID => [source, destination]
+*/
+exports.mapPolicyBSIDtoSourceDestination = {};
+
+exports.colors = [];

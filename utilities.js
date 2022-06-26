@@ -2,17 +2,20 @@ const matrices = require("./matrices");
 
 exports.checkAvailablePath = ({
   flow,
+  source,
   destination,
   trafficClass,
   bandwidthReq,
   delayReq,
   maxBandwidth,
 }) => {
-  let candidatePathKey = matrices.routingMatrix[flow];
+  let candidatePathKey = matrices.policyMatrix[source]
+    ? matrices.policyMatrix[source][destination] ?? null
+    : null;
   let candidatePath = matrices.candidatePathMatrix[candidatePathKey];
 
   //if candidate path for this flow is available
-  if (candidatePathKey && candidatePath.status) {
+  if (candidatePath?.segmentList?.length > 0 && candidatePath.status) {
     candidatePath.forEach((linkId) => {
       let status = this.checkLinkLoad({ linkId, bandwidthReq, delayReq });
       if (status.available) {
@@ -50,10 +53,13 @@ exports.checkAvailablePath = ({
       maxBandwidth,
       destination,
     });
-    matrices.routingMatrix[flow] = candidatePathKey;
+    matrices.mapPolicyBSIDtoSourceDestination['BSID'+matrices.mapPolicyBSIDtoSourceDestination.length] = [source,destination]
+    matrices.routingMatrix[] = candidatePathKey;
     matrices.candidatePathMatrix[candidatePathKey] = {
-      path: candidatePath,
+      segmentList: candidatePath,
       status: true,
+      preference: 100,
+      metric: trafficClass,
     };
     return candidatePath;
   }

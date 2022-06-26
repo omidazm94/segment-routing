@@ -17,6 +17,7 @@ Object.keys(matrices.currentTraffic).map((flow) => {
   let trafficClass = matrices.currentTraffic[flow].class;
   let sol = utilities.checkAvailablePath({
     flow,
+    source: "head-end",
     destination: 7,
     trafficClass: matrices.currentTraffic[flow].class,
     bandwidthReq: matrices.trafficRequirement[trafficClass].bandwidth,
