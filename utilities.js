@@ -9,42 +9,59 @@ exports.checkAvailablePath = ({
   delayReq,
   maxBandwidth,
 }) => {
-  let candidatePathKey = matrices.policyMatrix[source]
-    ? matrices.policyMatrix[source][destination] ?? null
-    : null;
-  let candidatePath = matrices.candidatePathMatrix[candidatePathKey];
+  let BSID = Object.keys(matrices.mapPolicyBSIDtoSourceDestination).find(
+    (BindingSID) => {
+      let policy = matrices.policyMatrix[BSID];
+      if (
+        (policy[0] === source && policy[1] === destination,
+        policy[2] === trafficClass)
+      )
+        return BindingSID;
+    }
+  );
+  if (BSID) {
+    // check if there is a valid path on that candidate path
+    let candidatePathKey = matrices.policyMatrix[source][destination].find(
+      (candidatePath) => candidatePath.status
+    );
+    let candidatePath = matrices.candidatePathMatrix[candidatePathKey];
+    let candidatePathNotValid = candidatePath.segmentList.find(
+      (linkId) =>
+        !this.checkLinkLoad({ linkId, bandwidthReq, delayReq }).available
+    );
 
-  //if candidate path for this flow is available
-  if (candidatePath?.segmentList?.length > 0 && candidatePath.status) {
-    candidatePath.forEach((linkId) => {
-      let status = this.checkLinkLoad({ linkId, bandwidthReq, delayReq });
-      if (status.available) {
-        matrices.routingMatrix[flow] = candidatePathKey;
-        return candidatePath.path;
-      } else {
-        matrices.candidatePathMatrix[candidatePathKey] = {
-          path: candidatePath,
-          status: false,
-        };
-        candidatePathKey = "cp" + matrices.candidatePathMatrix.length;
-        candidatePath = this.dijkstraAlgorithm({
-          layout: matrices.graphLayout,
-          networkStatus: matrices.networkStatus,
-          networkLoad: matrices.networkLoad,
-          trafficClass,
-          maxBandwidth,
-          destination,
-        });
-        matrices.routingMatrix[flow] = candidatePathKey;
-        matrices.candidatePathMatrix[candidatePathKey] = {
-          path: candidatePath,
-          status: true,
-        };
-        return candidatePath;
-      }
-    });
+    //if candidate path has  enough bandwidth and meets our delay
+    if (!candidatePathNotValid) {
+      matrices.routingMatrix[flow] = { BSID, CP: candidatePathKey };
+      return candidatePath.path;
+    } else {
+      // if candidate path violates qos requirements
+      matrices.candidatePathMatrix[candidatePathKey] = {
+        ...matrices.candidatePathMatrix[candidatePathKey],
+        status: false,
+      };
+      candidatePathKey =
+        "cp" + Object.keys(matrices.candidatePathMatrix).length;
+      candidatePath = this.dijkstraAlgorithm({
+        layout: matrices.graphLayout,
+        networkStatus: matrices.networkStatus,
+        networkLoad: matrices.networkLoad,
+        trafficClass,
+        maxBandwidth,
+        destination,
+      });
+      matrices.routingMatrix[flow] = { BSID, CP: candidatePathKey };
+      matrices.candidatePathMatrix[candidatePathKey] = {
+        ...matrices.candidatePathMatrix[candidatePathKey],
+        segmentlist: candidatePath,
+        status: true,
+        metric: trafficClass,
+      };
+      return candidatePath;
+    }
   } else {
-    candidatePathKey = "cp" + matrices.candidatePathMatrix.length;
+    // if tuple source destination and class is new
+    candidatePathKey = "cp" + Object.keys(matrices.candidatePathMatrix).length;
     candidatePath = this.dijkstraAlgorithm({
       layout: matrices.graphLayout,
       networkStatus: matrices.networkStatus,
@@ -53,15 +70,41 @@ exports.checkAvailablePath = ({
       maxBandwidth,
       destination,
     });
-    matrices.mapPolicyBSIDtoSourceDestination['BSID'+matrices.mapPolicyBSIDtoSourceDestination.length] = [source,destination]
-    matrices.routingMatrix[] = candidatePathKey;
-    matrices.candidatePathMatrix[candidatePathKey] = {
-      segmentList: candidatePath,
-      status: true,
-      preference: 100,
-      metric: trafficClass,
-    };
-    return candidatePath;
+    // if dijk could find a path
+    if (candidatePath) {
+      BSID =
+        "BSID" + Object.keys(matrices.mapPolicyBSIDtoSourceDestination).length;
+      matrices.routingMatrix[flow] = { BSID, CP: candidatePathKey };
+      matrices.mapPolicyBSIDtoSourceDestination[BSID] = [
+        source,
+        destination,
+        trafficClass,
+      ];
+      matrices.candidatePathMatrix[candidatePathKey] = {
+        segmentList: candidatePath,
+        status: true,
+        preference: 100,
+        metric: trafficClass,
+      };
+      if (
+        matrices.policyMatrix[source] &&
+        matrices.policyMatrix[source][destination]
+      )
+        matrices.policyMatrix[source] = {
+          [destination]: [
+            ...matrices.policyMatrix[source][destination],
+            candidatePathKey,
+          ],
+        };
+      else {
+        matrices.policyMatrix[source] = {
+          [destination]: [candidatePathKey],
+        };
+      }
+      return candidatePath;
+    } else {
+      return "could not find a path. you are fucked";
+    }
   }
 };
 

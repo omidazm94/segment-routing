@@ -79,8 +79,12 @@ exports.candidatePathMatrix = {};
 
 /*
   map BSID to source and destination
-  BSID => [source, destination]
+  BSID => [source, destination, class = color]
 */
 exports.mapPolicyBSIDtoSourceDestination = {};
 
-exports.colors = [];
+exports.colors = {
+  c1: "green",
+  c2: "blue",
+  c3: "red",
+};
