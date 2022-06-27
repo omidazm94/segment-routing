@@ -10,68 +10,89 @@ exports.checkAvailablePath = ({
   maxBandwidth,
 }) => {
   let BSID = Object.keys(matrices.mapPolicyBSIDtoSourceDestination).find(
-    (BindingSID) => {
-      let policy = matrices.policyMatrix[BSID];
+    (bindingSID) => {
+      let policy = matrices.mapPolicyBSIDtoSourceDestination[bindingSID];
       if (
         (policy[0] === source && policy[1] === destination,
         policy[2] === trafficClass)
       )
-        return BindingSID;
+        return bindingSID;
     }
   );
   if (BSID) {
     // check if there is a valid path on that candidate path
     let candidatePathKey = matrices.policyMatrix[source][destination].find(
-      (candidatePath) => candidatePath.status
+      (cpKey) => matrices.candidatePathMatrix[cpKey].status
     );
-    let candidatePath = matrices.candidatePathMatrix[candidatePathKey];
-    let candidatePathNotValid = candidatePath.segmentList.find(
-      (linkId) =>
-        !this.checkLinkLoad({ linkId, bandwidthReq, delayReq }).available
-    );
+    let segmentList =
+      matrices.candidatePathMatrix[candidatePathKey]?.segmentList;
+    let candidatePathNotValid =
+      !candidatePathKey ||
+      !this.checkLinksOnPath({
+        bandwidthReq,
+        delayReq,
+        source,
+        segmentList,
+      });
 
     //if candidate path has  enough bandwidth and meets our delay
     if (!candidatePathNotValid) {
       matrices.routingMatrix[flow] = { BSID, CP: candidatePathKey };
-      return candidatePath.path;
+      this.updateLinkLoadsOnPath({
+        bandwidth: bandwidthReq,
+        source,
+        segmentList,
+      });
+      return segmentList;
     } else {
       // if candidate path violates qos requirements
-      matrices.candidatePathMatrix[candidatePathKey] = {
-        ...matrices.candidatePathMatrix[candidatePathKey],
-        status: false,
-      };
+      if (candidatePathKey) {
+        matrices.candidatePathMatrix[candidatePathKey] = {
+          ...matrices.candidatePathMatrix[candidatePathKey],
+          status: false,
+        };
+      }
       candidatePathKey =
         "cp" + Object.keys(matrices.candidatePathMatrix).length;
-      candidatePath = this.dijkstraAlgorithm({
+
+      segmentList = this.dijkstraAlgorithm({
         layout: matrices.graphLayout,
         networkStatus: matrices.networkStatus,
         networkLoad: matrices.networkLoad,
         trafficClass,
-        maxBandwidth,
         destination,
+        maxBandwidth,
       });
-      matrices.routingMatrix[flow] = { BSID, CP: candidatePathKey };
-      matrices.candidatePathMatrix[candidatePathKey] = {
-        ...matrices.candidatePathMatrix[candidatePathKey],
-        segmentlist: candidatePath,
-        status: true,
-        metric: trafficClass,
-      };
-      return candidatePath;
+      if (segmentList) {
+        matrices.routingMatrix[flow] = { BSID, CP: candidatePathKey };
+        matrices.candidatePathMatrix[candidatePathKey] = {
+          ...matrices.candidatePathMatrix[candidatePathKey],
+          segmentList,
+          status: true,
+          metric: trafficClass,
+        };
+        this.updateLinkLoadsOnPath({
+          bandwidth: bandwidthReq,
+          source,
+          segmentList,
+        });
+        return segmentList;
+      }
+      return "could not find a path. you are fucked";
     }
   } else {
     // if tuple source destination and class is new
     candidatePathKey = "cp" + Object.keys(matrices.candidatePathMatrix).length;
-    candidatePath = this.dijkstraAlgorithm({
+    segmentList = this.dijkstraAlgorithm({
       layout: matrices.graphLayout,
       networkStatus: matrices.networkStatus,
       networkLoad: matrices.networkLoad,
       trafficClass,
-      maxBandwidth,
       destination,
+      maxBandwidth,
     });
     // if dijk could find a path
-    if (candidatePath) {
+    if (segmentList) {
       BSID =
         "BSID" + Object.keys(matrices.mapPolicyBSIDtoSourceDestination).length;
       matrices.routingMatrix[flow] = { BSID, CP: candidatePathKey };
@@ -81,7 +102,7 @@ exports.checkAvailablePath = ({
         trafficClass,
       ];
       matrices.candidatePathMatrix[candidatePathKey] = {
-        segmentList: candidatePath,
+        segmentList,
         status: true,
         preference: 100,
         metric: trafficClass,
@@ -101,7 +122,12 @@ exports.checkAvailablePath = ({
           [destination]: [candidatePathKey],
         };
       }
-      return candidatePath;
+      this.updateLinkLoadsOnPath({
+        bandwidth: bandwidthReq,
+        source,
+        segmentList,
+      });
+      return segmentList;
     } else {
       return "could not find a path. you are fucked";
     }
@@ -110,14 +136,15 @@ exports.checkAvailablePath = ({
 
 exports.dijkstraAlgorithm = ({
   layout = {},
-  startNode = "headEnd",
+  startNode = "head-end",
   networkStatus,
   networkLoad = {},
   trafficClass,
-  maxBandwidth,
   destination,
+  maxBandwidth, // this is used to reverse the impact of bandwidth
 }) => {
   const trafficRequirement = matrices.trafficRequirement;
+
   const self = this;
   // var layout = {
   //   'R': ['2'],
@@ -162,8 +189,11 @@ exports.dijkstraAlgorithm = ({
         if (solutions[currentAdj]) continue;
         //choose nearest node with lowest *total* cost
         var distanceFromCurrentAdj = adj[currentAdj] + distanceToCurrentNode;
-
-        if (distanceFromCurrentAdj < dist) {
+        let delayCondition =
+          trafficClass === "c1"
+            ? distanceFromCurrentAdj < trafficRequirement[trafficClass].delay
+            : true;
+        if (distanceFromCurrentAdj < dist && delayCondition) {
           //reference parent
           parent = solutions[currentNode];
           nearest = currentAdj;
@@ -198,21 +228,21 @@ exports.getLinkWeightBasedOnTrafficClass = ({
     bandwidthReq: trafficRequirement.bandwidth,
     delayReq: trafficRequirement.delay,
   });
+  let availableBandwidth =
+    matrices.networkStatus[linkId].bandwidth - matrices.networkLoad[linkId];
+
   if (status.available)
     if (trafficRequirement.criteria === "delay") {
-      return trafficRequirement["delay"] + 0.5 * linkStatus.distance;
+      return matrices.networkStatus[linkId].delay;
+      // return trafficRequirement["delay"] + 0.5 * linkStatus.distance;
     } else if (trafficRequirement.criteria === "normal") {
       return (
-        trafficRequirement["delay"] +
-        (maxBandwidth - trafficRequirement["bandwidth"]) +
+        matrices.networkStatus[linkId].delay +
+        (maxBandwidth - availableBandwidth) +
         linkStatus.distance
       );
     } else if (trafficRequirement.criteria === "bandwidth") {
-      return (
-        maxBandwidth -
-        trafficRequirement["bandwidth"] +
-        0.5 * linkStatus.distance
-      );
+      return maxBandwidth - availableBandwidth + 0.5 * linkStatus.distance;
     }
   return Infinity;
 };
@@ -221,7 +251,7 @@ exports.checkLinkLoad = ({ linkId, bandwidthReq, delayReq }) => {
   let linkStatus = matrices.networkStatus[linkId];
 
   // بررسی بالا بودن لینک
-  if (!linkStatus.up) return { available: false, status: "failed" };
+  if (!linkStatus.status) return { available: false, status: "failed" };
   // if available bandwidth is enough or delay requirement has been met or not
   if (
     linkStatus.bandwidth - matrices.networkLoad[linkId] < bandwidthReq ||
@@ -231,10 +261,41 @@ exports.checkLinkLoad = ({ linkId, bandwidthReq, delayReq }) => {
   return { available: true, status: "success" };
 };
 
+exports.checkLinksOnPath = ({
+  source,
+  segmentList,
+  bandwidthReq,
+  delayReq,
+}) => {
+  [source, ...segmentList].forEach((node, index) => {
+    if (index !== segmentList.length) {
+      let linkId = node + "-" + segmentList[index];
+      let linkStatus = matrices.networkStatus[linkId];
+      let linkLoad = matrices.networkLoad[linkId];
+      if (
+        linkStatus.bandwidth - linkLoad < bandwidthReq ||
+        linkStatus.delay < delayReq ||
+        linkStatus.status
+      )
+        return false;
+    }
+  });
+  return true;
+};
+
+exports.updateLinkLoadsOnPath = ({ source, segmentList, bandwidth }) => {
+  [source, ...segmentList].forEach((node, index) => {
+    if (index !== segmentList.length) {
+      matrices.networkLoad[node + "-" + segmentList[index]] +=
+        typeof bandwidth === Number ? bandwidth : 0;
+    }
+  });
+};
+
 //checks if there is a chance to congestion occurrence
 exports.monitorLinks = (nextTraffic) => {
   // Object.keys(matrices.linkStatus).forEach((link) => {
-  //   if (!link.up) return "failed";
+  //   if (!link.status) return "failed";
   //   if (matrices.networkLoad[link] > matrices.linkStatus[link].bandwidth)
   //     return "congestion";
   // });
@@ -253,20 +314,27 @@ exports.generateNextTraffic = () => {};
 exports.initializeNetworkLinksLoad = (graphLayout, max = 10, min = 1) => {
   Object.keys(graphLayout).forEach((node) => {
     graphLayout[node].forEach((adj) => {
-      matrices.networkLoad[node + "-" + adj] = Math.floor(
-        Math.random() * (max - min + 1) + min
-      );
+      matrices.networkLoad[node + "-" + adj] = 0;
+      // Math.floor(
+      //   Math.random() * (max - min + 1) + min
+      // );
     });
   });
 };
 
-exports.initializeNetworkLinksStatuses = (networkLoad, max = 50, min = 30) => {
+exports.initializeNetworkLinksStatuses = (
+  networkLoad,
+  maxBandwidth = 300,
+  min = 100
+) => {
   Object.keys(networkLoad).forEach((link) => {
     matrices.networkStatus[link] = {
-      up: true,
-      bandwidth: Math.floor(Math.random() * (max - min + 1) + min),
-      delay: Math.floor(Math.random() * (max - (min - 20) + 1) + (min - 20)),
-      distance: Math.floor(Math.random() * (max - min + 1) + min),
+      status: true,
+      bandwidth: Math.floor(Math.random() * (maxBandwidth - min + 1) + min),
+      delay: Math.floor(
+        Math.random() * (maxBandwidth / 30 - min / 100 + 1) + min / 100
+      ),
+      distance: Math.floor(Math.random() * (maxBandwidth - min + 1) + min),
     };
   });
 };

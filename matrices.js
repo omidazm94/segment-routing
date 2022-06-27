@@ -37,14 +37,14 @@ exports.nextTraffic = {
 // bandwidth load on each network link
 exports.networkLoad = {};
 
-// status info of each link. up, bandwidth, delay
+// status info of each link. status, bandwidth, delay
 exports.networkStatus = {};
 
 // p*2
 exports.trafficRequirement = {
-  c1: { delay: 10, bandwidth: 10, criteria: "delay" }, // delay
-  c2: { delay: 30, bandwidth: 20, criteria: "normal" }, // normal
-  c3: { delay: 50, bandwidth: 50, criteria: "bandwidth" }, // bandwidth
+  c1: { delay: 70, bandwidth: 10, criteria: "delay" }, // delay
+  c2: { delay: 150, bandwidth: 20, criteria: "normal" }, // normal
+  c3: { delay: 200, bandwidth: 50, criteria: "bandwidth" }, // bandwidth
 };
 
 /*
@@ -64,7 +64,7 @@ exports.routingMatrix = {};
 exports.policyMatrix = [];
 
 /* 
-  each flow used what candidate path. for example cp1 : status : 'available , path'['a-b' , 'c-d']
+  each flow used what candidate path. for example cp1 : status : true , segmentList['a-b' , 'c-d']
   (preference, metric, segment list)
   {
     candidate-path key:{
