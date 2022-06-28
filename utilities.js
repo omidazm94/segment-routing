@@ -287,7 +287,7 @@ exports.updateLinkLoadsOnPath = ({ source, segmentList, bandwidth }) => {
   [source, ...segmentList].forEach((node, index) => {
     if (index !== segmentList.length) {
       matrices.networkLoad[node + "-" + segmentList[index]] +=
-        typeof bandwidth === Number ? bandwidth : 0;
+        typeof bandwidth === "number" ? bandwidth : 0;
     }
   });
 };
