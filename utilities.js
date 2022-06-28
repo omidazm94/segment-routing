@@ -94,7 +94,7 @@ exports.checkAvailablePath = ({
         });
         return segmentList;
       }
-      return "could not find a path. you are fucked";
+      return false;
     }
   } else {
     // if tuple source destination and class is new
@@ -145,10 +145,20 @@ exports.checkAvailablePath = ({
       });
       return segmentList;
     } else {
-      return "could not find a path. you are fucked";
+      return false;
     }
   }
 };
+
+exports.rerouting = ({
+  flow,
+  source,
+  destination,
+  trafficClass,
+  bandwidthReq,
+  delayReq,
+  maxBandwidth,
+}) => {};
 
 exports.dijkstraAlgorithm = ({
   layout = {},
@@ -347,14 +357,14 @@ exports.initializeNetworkLinksLoad = (graphLayout, max = 10, min = 1) => {
 exports.initializeNetworkLinksStatuses = (
   networkLoad,
   maxBandwidth = 300,
-  min = 100
+  min = maxBandwidth / 10
 ) => {
   Object.keys(networkLoad).forEach((link) => {
     matrices.networkStatus[link] = {
       status: true,
       bandwidth: Math.floor(Math.random() * (maxBandwidth - min + 1) + min),
       delay: Math.floor(
-        Math.random() * (maxBandwidth / 30 - min / 100 + 1) + min / 100
+        Math.random() * (maxBandwidth / 10 - min / 100 + 1) + min / 100
       ),
       distance: Math.floor(Math.random() * (maxBandwidth - min + 1) + min),
     };

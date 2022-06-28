@@ -39,20 +39,21 @@ exports.networkLoad = {};
 
 // status info of each link. status, bandwidth, delay
 // exports.networkStatus = {};
+
 exports.networkStatus = {
-  "2-3": { status: true, bandwidth: 249, delay: 2, distance: 258 },
-  "2-4": { status: true, bandwidth: 280, delay: 1, distance: 254 },
-  "2-5": { status: true, bandwidth: 148, delay: 3, distance: 287 },
-  "2-6": { status: true, bandwidth: 197, delay: 7, distance: 296 },
-  "2-7": { status: true, bandwidth: 232, delay: 10, distance: 178 },
-  "3-4": { status: true, bandwidth: 291, delay: 4, distance: 132 },
-  "3-6": { status: true, bandwidth: 210, delay: 8, distance: 243 },
-  "4-7": { status: true, bandwidth: 124, delay: 5, distance: 258 },
-  "5-6": { status: true, bandwidth: 163, delay: 1, distance: 174 },
-  "6-7": { status: true, bandwidth: 264, delay: 9, distance: 229 },
-  "headEnd-2": { status: true, bandwidth: 194, delay: 5, distance: 278 },
-  "headEnd-3": { status: true, bandwidth: 200, delay: 6, distance: 158 },
-  "headEnd-5": { status: true, bandwidth: 177, delay: 2, distance: 132 },
+  "2-3": { status: true, bandwidth: 89, delay: 4, distance: 52 },
+  "2-4": { status: true, bandwidth: 19, delay: 2, distance: 98 },
+  "2-5": { status: true, bandwidth: 84, delay: 10, distance: 72 },
+  "2-6": { status: true, bandwidth: 60, delay: 6, distance: 75 },
+  "2-7": { status: true, bandwidth: 24, delay: 2, distance: 33 },
+  "3-4": { status: true, bandwidth: 41, delay: 0, distance: 92 },
+  "3-6": { status: true, bandwidth: 57, delay: 5, distance: 29 },
+  "4-7": { status: true, bandwidth: 79, delay: 4, distance: 100 },
+  "5-6": { status: true, bandwidth: 71, delay: 10, distance: 42 },
+  "6-7": { status: true, bandwidth: 92, delay: 4, distance: 32 },
+  "headEnd-2": { status: true, bandwidth: 97, delay: 9, distance: 25 },
+  "headEnd-3": { status: true, bandwidth: 62, delay: 6, distance: 54 },
+  "headEnd-5": { status: true, bandwidth: 51, delay: 10, distance: 86 },
 };
 
 // p*2
