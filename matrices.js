@@ -1,5 +1,5 @@
 exports.graphLayout = {
-  "head-end": ["2", "3", "5"],
+  headEnd: ["2", "3", "5"],
   2: ["3", "4", "5", "6", "7"],
   3: ["4", "6"],
   4: ["7"],
@@ -38,7 +38,22 @@ exports.nextTraffic = {
 exports.networkLoad = {};
 
 // status info of each link. status, bandwidth, delay
-exports.networkStatus = {};
+// exports.networkStatus = {};
+exports.networkStatus = {
+  "2-3": { status: true, bandwidth: 249, delay: 2, distance: 258 },
+  "2-4": { status: true, bandwidth: 280, delay: 1, distance: 254 },
+  "2-5": { status: true, bandwidth: 148, delay: 3, distance: 287 },
+  "2-6": { status: true, bandwidth: 197, delay: 7, distance: 296 },
+  "2-7": { status: true, bandwidth: 232, delay: 10, distance: 178 },
+  "3-4": { status: true, bandwidth: 291, delay: 4, distance: 132 },
+  "3-6": { status: true, bandwidth: 210, delay: 8, distance: 243 },
+  "4-7": { status: true, bandwidth: 124, delay: 5, distance: 258 },
+  "5-6": { status: true, bandwidth: 163, delay: 1, distance: 174 },
+  "6-7": { status: true, bandwidth: 264, delay: 9, distance: 229 },
+  "headEnd-2": { status: true, bandwidth: 194, delay: 5, distance: 278 },
+  "headEnd-3": { status: true, bandwidth: 200, delay: 6, distance: 158 },
+  "headEnd-5": { status: true, bandwidth: 177, delay: 2, distance: 132 },
+};
 
 // p*2
 exports.trafficRequirement = {
@@ -54,7 +69,7 @@ exports.routingMatrix = {};
 
 /*
   this can be used if for each destination two candidate path has been found
-  (head-end, destination, color)
+  (headEnd, destination, color)
   {
     source : {
       destination : candidate-path key

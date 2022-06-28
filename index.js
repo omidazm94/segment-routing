@@ -10,19 +10,22 @@ let networkStatus = matrices.networkStatus;
 
 console.log(networkStatus);
 
-Object.keys(matrices.currentTraffic).map((flow) => {
-  console.log(networkLoad);
-  console.log(matrices.policyMatrix, "policies");
+Object.keys(matrices.currentTraffic).forEach((flow) => {
   let trafficClass = matrices.currentTraffic[flow].class;
   let sol = utilities.checkAvailablePath({
     flow,
-    source: "head-end",
-    destination: 7,
+    source: "headEnd",
+    destination: matrices.currentTraffic[flow].destination,
     trafficClass: matrices.currentTraffic[flow].class,
     bandwidthReq: matrices.trafficRequirement[trafficClass].bandwidth,
     delayReq: matrices.trafficRequirement[trafficClass].delay,
     maxBandwidth,
+    // cp: index === matrices.currentTraffic.length - 1 ? "" : null,
   });
 
+  console.log(matrices.routingMatrix, "final solution");
+  console.log(matrices.candidatePathMatrix, "final solution");
+  console.log(matrices.mapPolicyBSIDtoSourceDestination, "final solution");
+  console.log(matrices.policyMatrix, "final solution");
   console.log(sol, "final solution");
 });

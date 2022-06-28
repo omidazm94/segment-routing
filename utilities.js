@@ -19,9 +19,10 @@ exports.checkAvailablePath = ({
         return bindingSID;
     }
   );
+
   if (BSID) {
     // check if there is a valid path on that candidate path
-    let candidatePathKey = matrices.policyMatrix[source][destination].find(
+    let candidatePathKey = matrices.policyMatrix[source][destination]?.find(
       (cpKey) => matrices.candidatePathMatrix[cpKey].status
     );
     let segmentList =
@@ -64,12 +65,27 @@ exports.checkAvailablePath = ({
         maxBandwidth,
       });
       if (segmentList) {
+        if (
+          matrices.policyMatrix[source] &&
+          matrices.policyMatrix[source][destination]
+        )
+          matrices.policyMatrix[source] = {
+            [destination]: [
+              ...matrices.policyMatrix[source][destination],
+              candidatePathKey,
+            ],
+          };
+        else {
+          matrices.policyMatrix[source] = {
+            [destination]: [candidatePathKey],
+          };
+        }
         matrices.routingMatrix[flow] = { BSID, CP: candidatePathKey };
         matrices.candidatePathMatrix[candidatePathKey] = {
           ...matrices.candidatePathMatrix[candidatePathKey],
           segmentList,
           status: true,
-          metric: trafficClass,
+          metric: matrices.trafficRequirement[trafficClass].criteria,
         };
         this.updateLinkLoadsOnPath({
           bandwidth: bandwidthReq,
@@ -105,7 +121,7 @@ exports.checkAvailablePath = ({
         segmentList,
         status: true,
         preference: 100,
-        metric: trafficClass,
+        metric: matrices.trafficRequirement[trafficClass].criteria,
       };
       if (
         matrices.policyMatrix[source] &&
@@ -136,7 +152,7 @@ exports.checkAvailablePath = ({
 
 exports.dijkstraAlgorithm = ({
   layout = {},
-  startNode = "head-end",
+  startNode = "headEnd",
   networkStatus,
   networkLoad = {},
   trafficClass,
@@ -270,6 +286,8 @@ exports.checkLinksOnPath = ({
   [source, ...segmentList].forEach((node, index) => {
     if (index !== segmentList.length) {
       let linkId = node + "-" + segmentList[index];
+      if (!Object.keys(matrices.networkLoad).find((key) => key === linkId))
+        linkId = segmentList[index] + "-" + node;
       let linkStatus = matrices.networkStatus[linkId];
       let linkLoad = matrices.networkLoad[linkId];
       if (
@@ -286,7 +304,11 @@ exports.checkLinksOnPath = ({
 exports.updateLinkLoadsOnPath = ({ source, segmentList, bandwidth }) => {
   [source, ...segmentList].forEach((node, index) => {
     if (index !== segmentList.length) {
-      matrices.networkLoad[node + "-" + segmentList[index]] +=
+      let linkId = node + "-" + segmentList[index];
+      if (!Object.keys(matrices.networkLoad).find((key) => key === linkId))
+        linkId = segmentList[index] + "-" + node;
+
+      matrices.networkLoad[linkId] +=
         typeof bandwidth === "number" ? bandwidth : 0;
     }
   });
