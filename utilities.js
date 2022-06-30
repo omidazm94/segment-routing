@@ -158,7 +158,23 @@ exports.rerouting = ({
   delayReq,
   maxBandwidth,
 }) => {
-  console.log("needs rerouting");
+  //routing matrix {flow : BSID}
+  //candidatePath :  {key , {sl , per , metric , status}}
+  //policyMatrix :  {source:{destination:{class:key}}}
+  //mapPolicyToSD :  {BSID : [source, destination, class]}
+
+  let findSimilarAddress = Object.values(
+    matrices.mapPolicyBSIDtoSourceDestination
+  ).filter(
+    (pair) =>
+      pair[0] === source && pair[1] === destination && pair[2] === trafficClass
+  );
+
+  if (findSimilarAddress?.length > 0) {
+    //for each candidate path
+  } else {
+    // when similar segment list not found
+  }
 };
 
 exports.dijkstraAlgorithm = ({
