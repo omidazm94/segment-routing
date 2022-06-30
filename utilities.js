@@ -22,9 +22,12 @@ exports.checkAvailablePath = ({
 
   if (BSID) {
     // check if there is a valid path on that candidate path
-    let candidatePathKey = matrices.policyMatrix[source][destination]?.find(
-      (cpKey) => matrices.candidatePathMatrix[cpKey].status
-    );
+    let candidatePathKey = matrices.policyMatrix[source][destination]
+      ? matrices.policyMatrix[source][destination][trafficClass]?.find(
+          (cpKey) => matrices.candidatePathMatrix[cpKey].status
+        )
+      : null;
+
     let segmentList =
       matrices.candidatePathMatrix[candidatePathKey]?.segmentList;
     let candidatePathNotValid =
@@ -64,22 +67,19 @@ exports.checkAvailablePath = ({
         destination,
         maxBandwidth,
       });
+
+      // if dijkstra finds a path
       if (segmentList) {
-        if (
-          matrices.policyMatrix[source] &&
-          matrices.policyMatrix[source][destination]
-        )
-          matrices.policyMatrix[source] = {
-            [destination]: [
-              ...matrices.policyMatrix[source][destination],
-              candidatePathKey,
-            ],
-          };
-        else {
-          matrices.policyMatrix[source] = {
-            [destination]: [candidatePathKey],
-          };
-        }
+        //bacause previous BSID was valid but it's path was not so we have to update with a new BSID
+        BSID =
+          "BSID" +
+          Object.keys(matrices.mapPolicyBSIDtoSourceDestination).length;
+        this.updatePolicyMatrix({
+          source,
+          destination,
+          trafficClass,
+          candidatePathKey,
+        });
         matrices.routingMatrix[flow] = { BSID, CP: candidatePathKey };
         matrices.candidatePathMatrix[candidatePathKey] = {
           ...matrices.candidatePathMatrix[candidatePathKey],
@@ -87,6 +87,11 @@ exports.checkAvailablePath = ({
           status: true,
           metric: matrices.trafficRequirement[trafficClass].criteria,
         };
+        matrices.mapPolicyBSIDtoSourceDestination[BSID] = [
+          source,
+          destination,
+          trafficClass,
+        ];
         this.updateLinkLoadsOnPath({
           bandwidth: bandwidthReq,
           source,
@@ -107,7 +112,8 @@ exports.checkAvailablePath = ({
       destination,
       maxBandwidth,
     });
-    // if dijk could find a path
+
+    // if dijkstra could find a path
     if (segmentList) {
       BSID =
         "BSID" + Object.keys(matrices.mapPolicyBSIDtoSourceDestination).length;
@@ -123,21 +129,14 @@ exports.checkAvailablePath = ({
         preference: 100,
         metric: matrices.trafficRequirement[trafficClass].criteria,
       };
-      if (
-        matrices.policyMatrix[source] &&
-        matrices.policyMatrix[source][destination]
-      )
-        matrices.policyMatrix[source] = {
-          [destination]: [
-            ...matrices.policyMatrix[source][destination],
-            candidatePathKey,
-          ],
-        };
-      else {
-        matrices.policyMatrix[source] = {
-          [destination]: [candidatePathKey],
-        };
-      }
+
+      this.updatePolicyMatrix({
+        source,
+        destination,
+        trafficClass,
+        candidatePathKey,
+      });
+
       this.updateLinkLoadsOnPath({
         bandwidth: bandwidthReq,
         source,
@@ -158,7 +157,9 @@ exports.rerouting = ({
   bandwidthReq,
   delayReq,
   maxBandwidth,
-}) => {};
+}) => {
+  console.log("needs rerouting");
+};
 
 exports.dijkstraAlgorithm = ({
   layout = {},
@@ -322,6 +323,38 @@ exports.updateLinkLoadsOnPath = ({ source, segmentList, bandwidth }) => {
         typeof bandwidth === "number" ? bandwidth : 0;
     }
   });
+};
+
+exports.updatePolicyMatrix = ({
+  source,
+  destination,
+  trafficClass,
+  candidatePathKey,
+}) => {
+  if (
+    matrices.policyMatrix[source] &&
+    matrices.policyMatrix[source][destination]
+  )
+    matrices.policyMatrix[source] = {
+      ...matrices.policyMatrix[source],
+      [destination]: {
+        ...matrices.policyMatrix[source][destination],
+        [trafficClass]: matrices.policyMatrix[source][destination][trafficClass]
+          ? [
+              ...matrices.policyMatrix[source][destination][trafficClass],
+              candidatePathKey,
+            ]
+          : [candidatePathKey],
+      },
+    };
+  else {
+    matrices.policyMatrix[source] = {
+      ...matrices.policyMatrix[source],
+      [destination]: {
+        [trafficClass]: [candidatePathKey],
+      },
+    };
+  }
 };
 
 //checks if there is a chance to congestion occurrence

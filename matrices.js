@@ -18,7 +18,10 @@ exports.currentTraffic = {
   f7: { destination: 7, class: "c3" },
   f8: { destination: 7, class: "c2" },
   f9: { destination: 4, class: "c2" },
-  f10: { destination: 3, class: "c2" },
+  f10: { destination: 3, class: "c1" },
+  f11: { destination: 3, class: "c2" },
+  f12: { destination: 3, class: "c1" },
+  f13: { destination: 3, class: "c2" },
 };
 
 exports.nextTraffic = {
