@@ -1,5 +1,10 @@
 const matrices = require("./matrices");
 
+/* 
+  this method will check :
+  if candidate path with input requirements is available, will use it
+  otherwise will call dijkstra algo
+*/
 exports.checkAvailablePath = ({
   flow,
   source,
@@ -149,6 +154,11 @@ exports.checkAvailablePath = ({
   }
 };
 
+/*
+  if no path could be found with input requirements, then we need rerouting
+  first we look for packets or flows that have similar source and destination and different trafficClass
+  in these segment lists, we will ? based on req or based on existing flows on this 
+*/
 exports.rerouting = ({
   flow,
   source,
@@ -160,23 +170,35 @@ exports.rerouting = ({
 }) => {
   //routing matrix {flow : BSID}
   //candidatePath :  {key , {sl , per , metric , status}}
-  //policyMatrix :  {source:{destination:{class:key}}}
+  //policyMatrix :  {source:{destination:{class:[key]}}}
   //mapPolicyToSD :  {BSID : [source, destination, class]}
+  //networkStatus : "2-3": { status: true, bandwidth: 89, delay: 4, distance: 52 },
+  //networkLoad : "2-3": 50,
 
-  let findSimilarAddress = Object.values(
+  let bestPath;
+  let findSimilarSourceDestinations = Object.values(
     matrices.mapPolicyBSIDtoSourceDestination
   ).filter(
     (pair) =>
-      pair[0] === source && pair[1] === destination && pair[2] === trafficClass
-  );
+      pair[0] === source && pair[1] === destination && pair[2] !== trafficClass
+  ); // result = [[source,destination1,c2],[source,destination2,c2]]
 
-  if (findSimilarAddress?.length > 0) {
+  if (findSimilarSourceDestinations?.length > 0) {
     //for each candidate path
+    findSimilarSourceDestinations.forEach((SD) => {
+      matrices.policyMatrix[SD[0]][SD[1]][SD[2]].forEach((key) => {
+        let segmentList = matrices.candidatePathMatrix[key].segmentList;
+      });
+    });
   } else {
     // when similar segment list not found
   }
 };
 
+/*
+  customized dijkstra algo
+  this will find segment list based on traffic requirement
+*/
 exports.dijkstraAlgorithm = ({
   layout = {},
   startNode = "headEnd",
@@ -259,6 +281,9 @@ exports.dijkstraAlgorithm = ({
   return solutions[destination];
 };
 
+/*
+  based on traffic class will assign weight on links
+*/
 exports.getLinkWeightBasedOnTrafficClass = ({
   linkId,
   linkStatus,
@@ -290,6 +315,11 @@ exports.getLinkWeightBasedOnTrafficClass = ({
   return Infinity;
 };
 
+/* 
+  will check if link is up
+  bandwidth is available
+  delay is met
+*/
 exports.checkLinkLoad = ({ linkId, bandwidthReq, delayReq }) => {
   let linkStatus = matrices.networkStatus[linkId];
 
@@ -304,6 +334,9 @@ exports.checkLinkLoad = ({ linkId, bandwidthReq, delayReq }) => {
   return { available: true, status: "success" };
 };
 
+/*
+  check links on segment list so that they meet our requirement
+*/
 exports.checkLinksOnPath = ({
   source,
   segmentList,
@@ -328,6 +361,9 @@ exports.checkLinksOnPath = ({
   return true;
 };
 
+/*
+  after finding segment list, it will update link load
+*/
 exports.updateLinkLoadsOnPath = ({ source, segmentList, bandwidth }) => {
   [source, ...segmentList].forEach((node, index) => {
     if (index !== segmentList.length) {
@@ -341,6 +377,9 @@ exports.updateLinkLoadsOnPath = ({ source, segmentList, bandwidth }) => {
   });
 };
 
+/*
+  updates policy matrix
+*/
 exports.updatePolicyMatrix = ({
   source,
   destination,
@@ -392,6 +431,9 @@ exports.monitorLinks = (nextTraffic) => {
 
 exports.generateNextTraffic = () => {};
 
+/*
+  will initialize network links load with random numbers
+*/
 exports.initializeNetworkLinksLoad = (graphLayout, max = 10, min = 1) => {
   Object.keys(graphLayout).forEach((node) => {
     graphLayout[node].forEach((adj) => {
@@ -403,6 +445,10 @@ exports.initializeNetworkLinksLoad = (graphLayout, max = 10, min = 1) => {
   });
 };
 
+/*
+  will initialize network links status with random numbers
+  status, bandwidth, delay
+*/
 exports.initializeNetworkLinksStatuses = (
   networkLoad,
   maxBandwidth = 300,
