@@ -37,7 +37,7 @@ exports.checkAvailablePath = ({
       matrices.candidatePathMatrix[candidatePathKey]?.segmentList;
     let candidatePathNotValid =
       !candidatePathKey ||
-      !this.checkLinksOnPath({
+      !this.checkLinksOnPathHasProblem({
         bandwidthReq,
         delayReq,
         source,
@@ -176,20 +176,41 @@ exports.rerouting = ({
   //networkLoad : "2-3": 50,
 
   let bestPath;
-  let findSimilarSourceDestinations = Object.values(
+  let findSimilarSourceDestinations = Object.keys(
     matrices.mapPolicyBSIDtoSourceDestination
-  ).filter(
-    (pair) =>
-      pair[0] === source && pair[1] === destination && pair[2] !== trafficClass
-  ); // result = [[source,destination1,c2],[source,destination2,c2]]
+  ).filter((BSID) => {
+    let pair = matrices.mapPolicyBSIDtoSourceDestination[BSID];
+    if (
+      pair[0] === source &&
+      pair[1] === destination &&
+      pair[2] !== trafficClass
+    )
+      return BSID;
+  }); // result = [[source,destination1,c2],[source,destination2,c2]]
 
   if (findSimilarSourceDestinations?.length > 0) {
     //for each candidate path
-    findSimilarSourceDestinations.forEach((SD) => {
+    let qualifiedSegmentLists = [];
+    findSimilarSourceDestinations.forEach((BSID) => {
+      let SD = matrices.mapPolicyBSIDtoSourceDestination[BSID];
       matrices.policyMatrix[SD[0]][SD[1]][SD[2]].forEach((key) => {
         let segmentList = matrices.candidatePathMatrix[key].segmentList;
+        if (
+          !this.checkLinksOnPathHasProblem({
+            bandwidthReq,
+            delayReq,
+            segmentList,
+            source,
+          })
+        )
+          qualifiedSegmentLists.push = {
+            BSID,
+            CP: key,
+            ...matrices.candidatePathMatrix[key],
+          };
       });
     });
+    // when qualified routes has been found then sort them based on lead flow
   } else {
     // when similar segment list not found
   }
@@ -337,22 +358,24 @@ exports.checkLinkLoad = ({ linkId, bandwidthReq, delayReq }) => {
 /*
   check links on segment list so that they meet our requirement
 */
-exports.checkLinksOnPath = ({
+exports.checkLinksOnPathHasProblem = ({
   source,
   segmentList,
   bandwidthReq,
   delayReq,
 }) => {
   [source, ...segmentList].forEach((node, index) => {
+    let delayAdded = 0;
     if (index !== segmentList.length) {
       let linkId = node + "-" + segmentList[index];
       if (!Object.keys(matrices.networkLoad).find((key) => key === linkId))
         linkId = segmentList[index] + "-" + node;
       let linkStatus = matrices.networkStatus[linkId];
       let linkLoad = matrices.networkLoad[linkId];
+      delayAdded += linkStatus.delay;
       if (
         linkStatus.bandwidth - linkLoad < bandwidthReq ||
-        linkStatus.delay < delayReq ||
+        delayAdded < delayReq ||
         linkStatus.status
       )
         return false;
