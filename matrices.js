@@ -1,6 +1,6 @@
 exports.graphLayout = {
   headEnd: ["2", "3", "5"],
-  2: ["3", "4", "5", "6", "7"],
+  2: ["3", "4", "5", "6"],
   3: ["4", "6"],
   4: ["7"],
   5: ["6"],
@@ -22,6 +22,8 @@ exports.currentTraffic = {
   f11: { destination: 3, class: "c2" },
   f12: { destination: 3, class: "c1" },
   f13: { destination: 3, class: "c2" },
+  f14: { destination: 7, class: "c2" },
+  f15: { destination: 3, class: "c2" },
 };
 
 exports.nextTraffic = {
@@ -44,24 +46,24 @@ exports.networkLoad = {};
 // exports.networkStatus = {};
 
 exports.networkStatus = {
-  "2-3": { status: true, bandwidth: 89, delay: 4, distance: 52 },
-  "2-4": { status: true, bandwidth: 19, delay: 2, distance: 98 },
-  "2-5": { status: true, bandwidth: 84, delay: 10, distance: 72 },
-  "2-6": { status: true, bandwidth: 60, delay: 6, distance: 75 },
-  "2-7": { status: true, bandwidth: 24, delay: 2, distance: 33 },
-  "3-4": { status: true, bandwidth: 41, delay: 0, distance: 92 },
-  "3-6": { status: true, bandwidth: 57, delay: 5, distance: 29 },
-  "4-7": { status: true, bandwidth: 79, delay: 4, distance: 100 },
-  "5-6": { status: true, bandwidth: 71, delay: 10, distance: 42 },
-  "6-7": { status: true, bandwidth: 92, delay: 4, distance: 32 },
-  "headEnd-2": { status: true, bandwidth: 97, delay: 9, distance: 25 },
-  "headEnd-3": { status: true, bandwidth: 62, delay: 6, distance: 54 },
-  "headEnd-5": { status: true, bandwidth: 51, delay: 10, distance: 86 },
+  // "2-3": { status: true, bandwidth: 89, delay: 4, distance: 52 },
+  // "2-4": { status: true, bandwidth: 19, delay: 2, distance: 98 },
+  // "2-5": { status: true, bandwidth: 84, delay: 10, distance: 72 },
+  // "2-6": { status: true, bandwidth: 60, delay: 6, distance: 75 },
+  // "2-7": { status: true, bandwidth: 24, delay: 2, distance: 33 },
+  // "3-4": { status: true, bandwidth: 41, delay: 0, distance: 92 },
+  // "3-6": { status: true, bandwidth: 57, delay: 5, distance: 29 },
+  // "4-7": { status: true, bandwidth: 79, delay: 4, distance: 100 },
+  // "5-6": { status: true, bandwidth: 71, delay: 10, distance: 42 },
+  // "6-7": { status: true, bandwidth: 92, delay: 4, distance: 32 },
+  // "headEnd-2": { status: true, bandwidth: 97, delay: 9, distance: 25 },
+  // "headEnd-3": { status: true, bandwidth: 62, delay: 6, distance: 54 },
+  // "headEnd-5": { status: true, bandwidth: 51, delay: 10, distance: 86 },
 };
 
 // p*2
 exports.trafficRequirement = {
-  c1: { delay: 70, bandwidth: 10, criteria: "delay" }, // delay
+  c1: { delay: 40, bandwidth: 10, criteria: "delay" }, // delay
   c2: { delay: 150, bandwidth: 20, criteria: "normal" }, // normal
   c3: { delay: 200, bandwidth: 50, criteria: "bandwidth" }, // bandwidth
 };
