@@ -1,6 +1,6 @@
 const utilities = require("./utilities");
 const matrices = require("./matrices");
-let maxBandwidth = 300;
+let maxBandwidth = 150;
 let done = false;
 utilities.initializeNetworkLinksLoad(matrices.graphLayout);
 let networkLoad = matrices.networkLoad; // this is load on each link it also can be used to find certain links
@@ -23,11 +23,15 @@ Object.keys(matrices.currentTraffic).forEach((flow, index) => {
     // cp: index === matrices.currentTraffic.length - 1 ? "" : null,
   });
   if (!sol) {
-    console.log("**********************************************************");
+    console.log(
+      "*************************************************************************************"
+    );
     console.log("**Rerouting Needed** " + flow);
     console.log(matrices.networkLoad);
     console.log(matrices.trafficRequirement[trafficClass]);
-    console.log("***********************************************************");
+    console.log(
+      "*************************************************************************************"
+    );
     utilities.rerouting({
       flow,
       source: "headEnd",
