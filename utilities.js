@@ -27,6 +27,7 @@ exports.checkAvailablePath = ({
   );
   if (showLogs) {
     console.log(flow, " flow, line: 29");
+    console.log(matrices.networkLoad, "networkLoad");
     console.log(source, " source");
     console.log(destination, " destination");
     console.log(trafficClass, " trafficClass");
@@ -45,14 +46,14 @@ exports.checkAvailablePath = ({
 
     let segmentList =
       matrices.candidatePathMatrix[candidatePathKey]?.segmentList;
-    let candidatePathNotValid =
-      !candidatePathKey ||
-      !this.checkLinksOnPathHasProblem({
-        bandwidthReq,
-        delayReq,
-        source,
-        segmentList,
-      });
+
+    console.log(segmentList);
+    let candidatePathNotValid = this.checkLinksOnPathHasProblem({
+      bandwidthReq,
+      delayReq,
+      source,
+      segmentList,
+    });
 
     //if candidate path has  enough bandwidth and meets our delay
     if (!candidatePathNotValid) {
@@ -542,24 +543,26 @@ exports.checkLinksOnPathHasProblem = ({
   networkLoad = matrices.networkLoad,
   networkStatus = matrices.networkStatus,
 }) => {
-  [source, ...segmentList].forEach((node, index) => {
-    let delayAdded = 0;
-    if (index !== segmentList.length) {
-      let linkId = node + "-" + segmentList[index];
-      if (!Object.keys(networkLoad).find((key) => key === linkId))
-        linkId = segmentList[index] + "-" + node;
-      let linkStatus = networkStatus[linkId];
-      let linkLoad = networkLoad[linkId];
-      delayAdded += linkStatus.delay;
-      if (
-        linkStatus.bandwidth - linkLoad < bandwidthReq ||
-        delayAdded < delayReq ||
-        linkStatus.status
-      )
-        return false;
-    }
-  });
-  return true;
+  if (segmentList) {
+    [source, ...segmentList].forEach((node, index) => {
+      let delayAdded = 0;
+      if (index !== segmentList.length) {
+        let linkId = node + "-" + segmentList[index];
+        if (!Object.keys(networkLoad).find((key) => key === linkId))
+          linkId = segmentList[index] + "-" + node;
+        let linkStatus = networkStatus[linkId];
+        let linkLoad = networkLoad[linkId];
+        delayAdded += linkStatus.delay;
+        if (
+          linkStatus.bandwidth - linkLoad < bandwidthReq ||
+          delayAdded < delayReq ||
+          linkStatus.status
+        )
+          return false;
+      }
+    });
+    return true;
+  } else return true;
 };
 
 /*

@@ -1,11 +1,11 @@
 const utilities = require("./utilities");
 const matrices = require("./matrices");
-let maxBandwidth = 150;
+let maxBandwidth = 300;
 let done = false;
 utilities.initializeNetworkLinksLoad(matrices.graphLayout);
 let networkLoad = matrices.networkLoad; // this is load on each link it also can be used to find certain links
 
-utilities.initializeNetworkLinksStatuses(networkLoad, maxBandwidth);
+// utilities.initializeNetworkLinksStatuses(networkLoad, maxBandwidth);
 let networkStatus = matrices.networkStatus;
 
 console.log(networkStatus);
