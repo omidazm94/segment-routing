@@ -13,6 +13,7 @@ exports.checkAvailablePath = ({
   bandwidthReq,
   delayReq,
   maxBandwidth,
+  showLogs = true,
 }) => {
   let BSID = Object.keys(matrices.mapPolicyBSIDtoSourceDestination).find(
     (bindingSID) => {
@@ -24,9 +25,17 @@ exports.checkAvailablePath = ({
         return bindingSID;
     }
   );
+  if (showLogs) {
+    console.log(flow, " flow, line: 29");
+    console.log(source, " source");
+    console.log(destination, " destination");
+    console.log(trafficClass, " trafficClass");
+    console.log(bandwidthReq, " bandwidthReq");
+    console.log(delayReq, " delayReq");
+  }
 
   if (BSID) {
-    console.log(BSID, "find BSID, line: 29");
+    if (showLogs) console.log(BSID, "find BSID, line: 38");
     // check if there is a valid path on that candidate path
     let candidatePathKey = matrices.policyMatrix[source][destination]
       ? matrices.policyMatrix[source][destination][trafficClass]?.find(
@@ -47,7 +56,8 @@ exports.checkAvailablePath = ({
 
     //if candidate path has  enough bandwidth and meets our delay
     if (!candidatePathNotValid) {
-      console.log(candidatePathNotValid, "candidatePathNotValid, line: 50");
+      if (showLogs)
+        console.log(candidatePathNotValid, "candidatePathNotValid, line: 58");
       matrices.routingMatrix[flow] = { BSID, CP: candidatePathKey };
       this.updateLinkLoadsOnPath({
         bandwidth: bandwidthReq,
@@ -57,6 +67,8 @@ exports.checkAvailablePath = ({
       return segmentList;
     } else {
       // if candidate path violates qos requirements
+      if (showLogs)
+        console.log(candidatePathKey, "old candidatePathKey, line: 71");
       if (candidatePathKey) {
         matrices.candidatePathMatrix[candidatePathKey] = {
           ...matrices.candidatePathMatrix[candidatePathKey],
@@ -65,6 +77,8 @@ exports.checkAvailablePath = ({
       }
       candidatePathKey =
         "cp" + Object.keys(matrices.candidatePathMatrix).length;
+      if (showLogs)
+        console.log(candidatePathKey, "new candidatePathKey, line: 81");
 
       segmentList = this.dijkstraAlgorithm({
         layout: matrices.graphLayout,
@@ -74,6 +88,7 @@ exports.checkAvailablePath = ({
         destination,
         maxBandwidth,
       });
+      if (showLogs) console.log(segmentList, "segmentList, line: 91");
 
       // if dijkstra finds a path
       if (segmentList) {
@@ -99,6 +114,18 @@ exports.checkAvailablePath = ({
           destination,
           trafficClass,
         ];
+        if (showLogs) {
+          console.log(matrices.routingMatrix, "routingMatrix, line 118");
+          console.log(
+            matrices.candidatePathMatrix,
+            "candidatePathMatrix, line 121"
+          );
+          console.log(
+            matrices.mapPolicyBSIDtoSourceDestination,
+            "mapPolicyBSIDtoSourceDestination, line 125"
+          );
+        }
+
         this.updateLinkLoadsOnPath({
           bandwidth: bandwidthReq,
           source,
@@ -109,6 +136,7 @@ exports.checkAvailablePath = ({
       return false;
     }
   } else {
+    if (showLogs) console.log("tuple is new, line: 139");
     // if tuple source destination and class is new
     candidatePathKey = "cp" + Object.keys(matrices.candidatePathMatrix).length;
     segmentList = this.dijkstraAlgorithm({
@@ -119,7 +147,7 @@ exports.checkAvailablePath = ({
       destination,
       maxBandwidth,
     });
-
+    if (showLogs) console.log(segmentList, "new segmentList, line: 150");
     // if dijkstra could find a path
     if (segmentList) {
       BSID =
@@ -136,6 +164,17 @@ exports.checkAvailablePath = ({
         preference: 100,
         metric: matrices.trafficRequirement[trafficClass].criteria,
       };
+      if (showLogs) {
+        console.log(matrices.routingMatrix, "routingMatrix, line 168");
+        console.log(
+          matrices.candidatePathMatrix,
+          "candidatePathMatrix, line 171"
+        );
+        console.log(
+          matrices.mapPolicyBSIDtoSourceDestination,
+          "mapPolicyBSIDtoSourceDestination, line 175"
+        );
+      }
 
       this.updatePolicyMatrix({
         source,
@@ -168,6 +207,7 @@ exports.rerouting = ({
   trafficClass,
   bandwidthReq,
   delayReq,
+  showLogs = true,
 }) => {
   // im this line we look for other BSIDs whose class is different
   let similarSourceDestinations = Object.keys(
@@ -181,6 +221,11 @@ exports.rerouting = ({
     )
       return BSID;
   }); // result = [[source,destination1,c2],[source,destination2,c2]]
+  if (showLogs)
+    console.log(
+      similarSourceDestinations,
+      "similarSourceDestinations, line:226"
+    );
 
   // sort based on least flows routed
   similarSourceDestinations?.sort((a, b) => {
@@ -193,6 +238,11 @@ exports.rerouting = ({
     return flowsRoutedBy1 - flowsRoutedBy2;
   });
   let qualifiedBSID_CP = [];
+  if (showLogs)
+    console.log(
+      similarSourceDestinations,
+      "similarSourceDestinations sorted, line:243"
+    );
 
   if (similarSourceDestinations?.length > 0) {
     //for each BSID, we will find segment lists that are usable
@@ -201,6 +251,16 @@ exports.rerouting = ({
       matrices.policyMatrix[SDC[0]][SDC[1]][SDC[2]].forEach((key) => {
         let segmentList = matrices.candidatePathMatrix[key].segmentList;
         //check if segment list is good
+        if (showLogs)
+          console.log(
+            this.checkLinksOnPathNotMeetRequirement({
+              bandwidthReq,
+              delayReq,
+              segmentList,
+              source,
+            }),
+            "checkLinksOnPathNotMeetRequirement, line :261"
+          );
         if (
           !this.checkLinksOnPathNotMeetRequirement({
             bandwidthReq,
@@ -218,6 +278,7 @@ exports.rerouting = ({
         }
       });
     });
+    if (showLogs) console.log(qualifiedBSID_CP, "qualifiedBSID_CP, line:280");
 
     //for each flow which is directed using this BSID, CP we will reroute them to other directions
     if (qualifiedBSID_CP?.length > 0) {
@@ -227,6 +288,7 @@ exports.rerouting = ({
             matrices.routingMatrix[flowId]["BSID"] === BCP.BSID &&
             matrices.routingMatrix[flowId]["CP"] === BCP.CP
         );
+        if (showLogs) console.log(flows, "flows , line:290");
         let j = 0;
         let reRoutingNeeded = true;
         let tempNetworkLoad = { ...matrices.networkLoad };
@@ -242,12 +304,17 @@ exports.rerouting = ({
               destination,
               trafficClass,
             });
+            if (showLogs)
+              console.log(newSegmentList, "newSegmentList, line:307");
             if (newSegmentList) {
               let newFlowBindingSID = Object.keys(
                 matrices.mapPolicyBSIDtoSourceDestination
               ).length;
+              if (showLogs)
+                console.log(newFlowBindingSID, "newFlowBindingSID, line:313");
               let newCP =
                 "cp" + Object.keys(matrices.candidatePathMatrix).length;
+              if (showLogs) console.log(newCP, "newCP, line:316");
               tempRoutingMatrix[flowId] = {
                 BSID: newFlowBindingSID,
                 CP: newCP,
@@ -265,14 +332,23 @@ exports.rerouting = ({
                 source,
                 networkLoad: tempNetworkLoad,
               });
+              if (showLogs)
+                console.log(
+                  checkIfFlowCanBeRouted,
+                  "checkIfFlowCanBeRouted, line:337"
+                );
               if (!checkIfFlowCanBeRouted) {
                 let newCP =
                   "cp" + Object.keys(matrices.candidatePathMatrix).length;
                 let newFlowBindingSID = qualifiedBSID_CP[i]?.BSID;
+                if (showLogs)
+                  console.log(newFlowBindingSID, "newFlowBindingSID, line:344");
                 tempRoutingMatrix[flow] = {
                   BSID: newFlowBindingSID,
                   CP: newCP,
                 };
+                if (showLogs)
+                  console.log(tempRoutingMatrix, "tempRoutingMatrix, line:350");
                 this.updateLinkLoadsOnPath({
                   bandwidth: bandwidthReq,
                   segmentList: qualifiedBSID_CP[i].segmentList,
@@ -285,6 +361,11 @@ exports.rerouting = ({
               }
             }
             if (j === flows?.length - 1 && !reRoutingNeeded) {
+              if (showLogs)
+                console.log(
+                  j === flows?.length - 1 && !reRoutingNeeded,
+                  "j === flows?.length - 1 && !reRoutingNeeded, line:366"
+                );
               tempNetworkLoad = { ...matrices.networkLoad };
               tempRoutingMatrix = { ...matrices.routingMatrix };
             }
