@@ -112,7 +112,7 @@ exports.dijkstraAlgorithmWithConsole = ({
         var distanceFromCurrentAdj = adj[currentAdj] + distanceToCurrentNode;
         adjDistances[i] = distanceFromCurrentAdj;
         i++;
-        adjDistances.sort();
+        adjDistances = adjDistances.sort();
         console.log(adjDistances);
         let delayCondition =
           trafficClass === "c1"
