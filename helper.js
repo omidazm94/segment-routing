@@ -99,6 +99,8 @@ exports.dijkstraAlgorithmWithConsole = ({
       var distanceToCurrentNode = solutions[currentNode].dist;
       console.log(distanceToCurrentNode, "ndist");
       var adj = graph[currentNode];
+      let adjDistances = [];
+      let i = 0;
       console.log(adj, "adj of" + currentNode);
       let adjDistances = [];
       let i = 0;
