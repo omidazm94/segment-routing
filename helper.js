@@ -66,6 +66,7 @@ exports.dijkstraAlgorithmWithConsole = (layout = {}, startNode) => {
     var parent = null;
     var nearest = null;
     var dist = Infinity;
+    let secondNearestGraph = {};
 
     //for each existing solution
     //distance is calculated from starting node
@@ -74,6 +75,8 @@ exports.dijkstraAlgorithmWithConsole = (layout = {}, startNode) => {
       var distanceToCurrentNode = solutions[currentNode].dist;
       console.log(distanceToCurrentNode, "ndist");
       var adj = graph[currentNode];
+      let adjDistances = [];
+      let i = 0;
       console.log(adj, "adj of" + currentNode);
       //for each of its adjacent nodes...
       for (var currentAdj in adj) {
@@ -81,6 +84,10 @@ exports.dijkstraAlgorithmWithConsole = (layout = {}, startNode) => {
         if (solutions[currentAdj]) continue;
         //choose nearest node with lowest *total* cost
         var distanceFromCurrentAdj = adj[currentAdj] + distanceToCurrentNode;
+        adjDistances[i] = distanceFromCurrentAdj;
+        i++;
+        adjDistances.sort();
+        console.log(adjDistances, "adjDistances");
         console.log(distanceFromCurrentAdj, "d");
         if (distanceFromCurrentAdj < dist) {
           //reference parent
