@@ -102,8 +102,7 @@ exports.dijkstraAlgorithmWithConsole = ({
       let adjDistances = [];
       let i = 0;
       console.log(adj, "adj of" + currentNode);
-      let adjDistances = [];
-      let i = 0;
+
       //for each of its adjacent nodes...
       for (var currentAdj in adj) {
         //without a solution already...
