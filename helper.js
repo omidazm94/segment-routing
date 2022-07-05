@@ -1,3 +1,5 @@
+const utilities = require("./utilities");
+const matrices = require("./matrices");
 exports.dijkstraAlgorithm1 = (startNode) => {
   let distances = {};
 
@@ -29,17 +31,39 @@ exports.dijkstraAlgorithm1 = (startNode) => {
   return distances;
 };
 
-exports.dijkstraAlgorithmWithConsole = (layout = {}, startNode) => {
+exports.dijkstraAlgorithmWithConsole = ({
+  startNode = "headEnd",
+  layout,
+  trafficClass,
+  destination,
+  maxBandwidth,
+}) => {
   // var layout = {
   //   '1': ['2'],
   //   '2': ['3','4'],
+  const trafficRequirement = matrices.trafficRequirement;
+  let networkLoad = matrices.networkLoad;
+  let networkStatus = matrices.networkStatus;
+
+  // var layout = {
+  //   'R': ['2'],
+  //   '2': ['3','4'],
   let graph = {};
+  //convert uni-directional to bi-directional graph
   for (var id in layout) {
     if (!graph[id]) graph[id] = {};
     layout[id].forEach(function (aid) {
-      graph[id][aid] = 1;
+      let linkWeight = utilities.getLinkWeightBasedOnTrafficClass({
+        linkId: id + "-" + aid,
+        linkStatus: networkStatus[id + "-" + aid],
+        linkLoad: networkLoad[id + "-" + aid],
+        trafficRequirement: trafficRequirement[trafficClass],
+        maxBandwidth,
+      });
+
+      graph[id][aid] = linkWeight;
       if (!graph[aid]) graph[aid] = {};
-      graph[aid][id] = 1;
+      graph[aid][id] = linkWeight;
     });
   }
   console.log(graph);
@@ -66,6 +90,7 @@ exports.dijkstraAlgorithmWithConsole = (layout = {}, startNode) => {
     var parent = null;
     var nearest = null;
     var dist = Infinity;
+    let secondNearestGraph = {};
 
     //for each existing solution
     //distance is calculated from starting node
@@ -75,14 +100,25 @@ exports.dijkstraAlgorithmWithConsole = (layout = {}, startNode) => {
       console.log(distanceToCurrentNode, "ndist");
       var adj = graph[currentNode];
       console.log(adj, "adj of" + currentNode);
+      let adjDistances = [];
+      let i = 0;
       //for each of its adjacent nodes...
       for (var currentAdj in adj) {
         //without a solution already...
         if (solutions[currentAdj]) continue;
+
         //choose nearest node with lowest *total* cost
         var distanceFromCurrentAdj = adj[currentAdj] + distanceToCurrentNode;
+        adjDistances[i] = distanceFromCurrentAdj;
+        i++;
+        adjDistances.sort();
+        console.log(adjDistances);
+        let delayCondition =
+          trafficClass === "c1"
+            ? distanceFromCurrentAdj < trafficRequirement[trafficClass].delay
+            : true;
         console.log(distanceFromCurrentAdj, "d");
-        if (distanceFromCurrentAdj < dist) {
+        if (distanceFromCurrentAdj < dist && delayCondition) {
           //reference parent
           parent = solutions[currentNode];
           console.log(parent, "parent of " + currentNode);

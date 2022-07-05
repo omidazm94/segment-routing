@@ -1,4 +1,5 @@
 const matrices = require("./matrices");
+const helper = require("./helper");
 
 /* 
   this method will check :
@@ -47,7 +48,7 @@ exports.checkAvailablePath = ({
     let segmentList =
       matrices.candidatePathMatrix[candidatePathKey]?.segmentList;
 
-    console.log(segmentList);
+    if (showLogs) console.log(segmentList, "segmentList, lined :50");
     let candidatePathNotValid = this.checkLinksOnPathHasProblem({
       bandwidthReq,
       delayReq,
@@ -81,7 +82,7 @@ exports.checkAvailablePath = ({
       if (showLogs)
         console.log(candidatePathKey, "new candidatePathKey, line: 81");
 
-      segmentList = this.dijkstraAlgorithm({
+      segmentList = helper.dijkstraAlgorithmWithConsole({
         layout: matrices.graphLayout,
         networkStatus: matrices.networkStatus,
         networkLoad: matrices.networkLoad,
@@ -140,7 +141,7 @@ exports.checkAvailablePath = ({
     if (showLogs) console.log("tuple is new, line: 139");
     // if tuple source destination and class is new
     candidatePathKey = "cp" + Object.keys(matrices.candidatePathMatrix).length;
-    segmentList = this.dijkstraAlgorithm({
+    segmentList = helper.dijkstraAlgorithmWithConsole({
       layout: matrices.graphLayout,
       networkStatus: matrices.networkStatus,
       networkLoad: matrices.networkLoad,
@@ -301,7 +302,7 @@ exports.rerouting = ({
           flows.forEach((flowId) => {
             let flowReq =
               matrices.trafficRequirement[qualifiedBSID_CP[i]?.class];
-            let newSegmentList = this.dijkstraAlgorithm({
+            let newSegmentList = helper.dijkstraAlgorithmWithConsole({
               destination,
               trafficClass,
             });
@@ -603,15 +604,16 @@ exports.updateLinkLoadsOnPath = ({
   bandwidth,
   networkLoad = matrices.networkLoad,
 }) => {
-  [source, ...segmentList].forEach((node, index) => {
-    if (index !== segmentList.length) {
-      let linkId = node + "-" + segmentList[index];
-      if (!Object.keys(networkLoad).find((key) => key === linkId))
-        linkId = segmentList[index] + "-" + node;
+  if (segmentList?.length > 0)
+    [source, ...segmentList].forEach((node, index) => {
+      if (index !== segmentList.length) {
+        let linkId = node + "-" + segmentList[index];
+        if (!Object.keys(networkLoad).find((key) => key === linkId))
+          linkId = segmentList[index] + "-" + node;
 
-      networkLoad[linkId] += typeof bandwidth === "number" ? bandwidth : 0;
-    }
-  });
+        networkLoad[linkId] += typeof bandwidth === "number" ? bandwidth : 0;
+      }
+    });
 };
 
 /*
