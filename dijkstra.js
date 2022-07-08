@@ -3,7 +3,6 @@
 //helper class for PriorityQueue
 class Node {
   constructor(val, priority) {
-    console.log(val, priority, "val + priority");
     this.val = val;
     this.priority = priority;
   }
@@ -15,37 +14,24 @@ class PriorityQueue {
   }
   enqueue(val, priority) {
     let newNode = new Node(val, priority);
-    console.log(newNode, "newNode");
     this.values.push(newNode);
     this.bubbleUp();
   }
   bubbleUp() {
     let idx = this.values.length - 1;
-    console.log(idx, "idx");
     const element = this.values[idx];
-    console.log(element, "element");
     while (idx > 0) {
       let parentIdx = Math.floor((idx - 1) / 2);
       let parent = this.values[parentIdx];
-      console.log(parent, "parent, line:30");
-      console.log(
-        element.priority >= parent.priority,
-        "element.priority >= parent.priority, line:31"
-      );
       if (element.priority >= parent.priority) break;
       this.values[parentIdx] = element;
-      console.log(this.values);
       this.values[idx] = parent;
-      console.log(parent);
       idx = parentIdx;
     }
   }
   dequeue() {
     const min = this.values[0];
-    console.log(min, "min, line : 45");
     const end = this.values.pop();
-    console.log(end, "end, line : 47");
-    console.log(this.values.length > 0, "this.values.length > 0");
     if (this.values.length > 0) {
       this.values[0] = end;
       this.sinkDown();
@@ -55,22 +41,19 @@ class PriorityQueue {
   sinkDown() {
     let idx = 0;
     const length = this.values.length;
-    console.log(length, "length, line:58");
     const element = this.values[0];
-    console.log(element, "element, line:60");
     while (true) {
       let leftChildIdx = 2 * idx + 1;
       let rightChildIdx = 2 * idx + 2;
       let leftChild, rightChild;
       let swap = null;
-      console.log(leftChildIdx < length, "leftChildIdx < length, line:66");
+
       if (leftChildIdx < length) {
         leftChild = this.values[leftChildIdx];
         if (leftChild.priority < element.priority) {
           swap = leftChildIdx;
         }
       }
-      console.log(rightChildIdx < length, "rightChildIdx < length, line:73");
       if (rightChildIdx < length) {
         rightChild = this.values[rightChildIdx];
         if (
@@ -80,11 +63,9 @@ class PriorityQueue {
           swap = rightChildIdx;
         }
       }
-      console.log(swap, "swap line:83");
       if (swap === null) break;
       this.values[idx] = this.values[swap];
       this.values[swap] = element;
-      console.log(this.values, " this.values line:87");
       idx = swap;
     }
   }
@@ -105,7 +86,6 @@ class WeightedGraph {
   }
   Dijkstra(start, finish) {
     const nodes = new PriorityQueue();
-    console.log(nodes, " nodes line:108");
     const distances = {};
     const previous = {};
     let path = []; //to return at end
@@ -120,12 +100,10 @@ class WeightedGraph {
         nodes.enqueue(vertex, Infinity);
       }
       previous[vertex] = null;
-      console.log(previous, "previous, line:previous");
     }
     // as long as there is something to visit
     while (nodes.values.length) {
       smallest = nodes.dequeue().val;
-      console.log(smallest, " smallest line:127");
       if (smallest === finish) {
         //WE ARE DONE
         //BUILD UP PATH TO RETURN AT END
@@ -136,30 +114,23 @@ class WeightedGraph {
         break;
       }
       if (smallest || distances[smallest] !== Infinity) {
-        console.log(this.adjacencyList[smallest], " adj[smallest] line:139");
         for (let neighbor in this.adjacencyList[smallest]) {
           //find neighboring node
           let nextNode = this.adjacencyList[smallest][neighbor];
-          console.log(nextNode, " nextNode line:143");
           //calculate new distance to neighboring node
           let candidate = distances[smallest] + nextNode.weight;
-          console.log(candidate, " candidate line:146");
           let nextNeighbor = nextNode.node;
-          console.log(nextNeighbor, " nextNeighbor line:148");
           if (candidate < distances[nextNeighbor]) {
             //updating new smallest distance to neighbor
             distances[nextNeighbor] = candidate;
-            console.log(distances, " distances line:152");
             //updating previous - How we got to neighbor
             previous[nextNeighbor] = smallest;
-            console.log(previous, "previous line:155");
             //enqueue in priority queue with new priority
             nodes.enqueue(nextNeighbor, candidate);
           }
         }
       }
     }
-    console.log(smallest, "smallest line:162");
     return path.concat(smallest).reverse();
   }
 }
