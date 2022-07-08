@@ -95,6 +95,7 @@ exports.checkAvailablePath = ({
       // if dijkstra finds a path
       if (segmentList) {
         //bacause previous BSID was valid but it's path was not so we have to update with a new BSID
+        // TODO : we don't need a new policy
         BSID =
           "BSID" +
           Object.keys(matrices.mapPolicyBSIDtoSourceDestination).length;

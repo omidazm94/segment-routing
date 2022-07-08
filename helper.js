@@ -82,6 +82,7 @@ exports.dijkstraAlgorithmWithConsole = ({
   // };
 
   var solutions = {};
+  var backUpSolutions = {};
   solutions[startNode] = [];
   solutions[startNode].dist = 0;
   console.log(solutions, "solutions");
@@ -99,8 +100,7 @@ exports.dijkstraAlgorithmWithConsole = ({
       var distanceToCurrentNode = solutions[currentNode].dist;
       console.log(distanceToCurrentNode, "ndist");
       var adj = graph[currentNode];
-      let adjDistances = [];
-      let i = 0;
+      let adjDistances = {};
       console.log(adj, "adj of" + currentNode);
 
       //for each of its adjacent nodes...
@@ -110,9 +110,8 @@ exports.dijkstraAlgorithmWithConsole = ({
 
         //choose nearest node with lowest *total* cost
         var distanceFromCurrentAdj = adj[currentAdj] + distanceToCurrentNode;
-        adjDistances[i] = distanceFromCurrentAdj;
-        i++;
-        adjDistances = adjDistances.sort();
+        adjDistances[currentAdj] = distanceFromCurrentAdj;
+        // adjDistances = Object.keys(adjDistances).sort((a,b)=>adjDistances[a]-adjDistances[2]);
         console.log(adjDistances);
         let delayCondition =
           trafficClass === "c1"
