@@ -1,3 +1,5 @@
+const utilities = require("./utilities");
+const matrices = require("./matrices");
 //Dijkstra algorithm is used to find the shortest distance between two nodes inside a valid weighted graph. Often used in Google Maps, Network Router etc.
 
 //helper class for PriorityQueue
@@ -73,7 +75,7 @@ class PriorityQueue {
 
 //Dijkstra's algorithm only works on a weighted graph.
 
-class WeightedGraph {
+exports.WeightedGraphClass = class WeightedGraph {
   constructor() {
     this.adjacencyList = {};
   }
@@ -84,7 +86,43 @@ class WeightedGraph {
     this.adjacencyList[vertex1].push({ node: vertex2, weight });
     this.adjacencyList[vertex2].push({ node: vertex1, weight });
   }
-  Dijkstra(start, finish) {
+  updateLinkWeight(vertex1, vertex2, weight) {
+    let v1 = this.adjacencyList[vertex1].find((v) => v.node === vertex2);
+    v1.weight = weight;
+    let v2 = this.adjacencyList[vertex2].find((v) => v.node === vertex1);
+    v2.weight = weight;
+  }
+  updateLinkWeights({
+    graphLayout = matrices.graphLayout,
+    trafficClass,
+    maxBandwidth,
+  }) {
+    let self = this;
+    for (var id in graphLayout)
+      graphLayout[id].forEach(function (aid) {
+        let linkWeight = utilities.getLinkWeightBasedOnTrafficClass({
+          linkId: id + "-" + aid,
+          linkStatus: matrices.networkStatus[id + "-" + aid],
+          linkLoad: matrices.networkLoad[id + "-" + aid],
+          trafficRequirement: matrices.trafficRequirement[trafficClass],
+          maxBandwidth,
+        });
+
+        let v1 = self.adjacencyList[id].find((v) => v.node === aid);
+        let v2 = self.adjacencyList[aid].find((v) => v.node === id);
+        if (v1?.node) {
+          v1.weight = linkWeight;
+          v2.weight = linkWeight;
+        } else {
+          self.addEdge(id, aid, linkWeight);
+        }
+      });
+  }
+  Dijkstra({ startNode, destination, trafficClass, maxBandwidth = 300 }) {
+    this.updateLinkWeights({
+      trafficClass,
+      maxBandwidth,
+    });
     const nodes = new PriorityQueue();
     const distances = {};
     const previous = {};
@@ -92,7 +130,7 @@ class WeightedGraph {
     let smallest;
     //build up initial state
     for (let vertex in this.adjacencyList) {
-      if (vertex === start) {
+      if (vertex === startNode) {
         distances[vertex] = 0;
         nodes.enqueue(vertex, 0);
       } else {
@@ -104,7 +142,7 @@ class WeightedGraph {
     // as long as there is something to visit
     while (nodes.values.length) {
       smallest = nodes.dequeue().val;
-      if (smallest === finish) {
+      if (smallest === destination) {
         //WE ARE DONE
         //BUILD UP PATH TO RETURN AT END
         while (previous[smallest]) {
@@ -131,27 +169,7 @@ class WeightedGraph {
         }
       }
     }
-    return path.concat(smallest).reverse();
+    let segmentList = path.concat(smallest).reverse();
+    return segmentList?.length > 1 ? segmentList.slice(1) : segmentList;
   }
-}
-
-//EXAMPLES=====================================================================
-
-var graph = new WeightedGraph();
-graph.addVertex("A");
-graph.addVertex("B");
-graph.addVertex("C");
-graph.addVertex("D");
-graph.addVertex("E");
-graph.addVertex("F");
-
-graph.addEdge("A", "B", 4);
-graph.addEdge("A", "C", 2);
-graph.addEdge("B", "E", 3);
-graph.addEdge("C", "D", 2);
-graph.addEdge("C", "F", 4);
-graph.addEdge("D", "E", 3);
-graph.addEdge("D", "F", 1);
-graph.addEdge("E", "F", 1);
-
-console.log(graph.Dijkstra("A", "E"));
+};

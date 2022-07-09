@@ -82,7 +82,7 @@ exports.checkAvailablePath = ({
       if (showLogs)
         console.log(candidatePathKey, "new candidatePathKey, line: 81");
 
-      segmentList = helper.dijkstraAlgorithmWithConsole({
+      segmentList = this.dijkstraAlgorithm({
         layout: matrices.graphLayout,
         networkStatus: matrices.networkStatus,
         networkLoad: matrices.networkLoad,
@@ -142,7 +142,7 @@ exports.checkAvailablePath = ({
     if (showLogs) console.log("tuple is new, line: 139");
     // if tuple source destination and class is new
     candidatePathKey = "cp" + Object.keys(matrices.candidatePathMatrix).length;
-    segmentList = helper.dijkstraAlgorithmWithConsole({
+    segmentList = this.dijkstraAlgorithm({
       layout: matrices.graphLayout,
       networkStatus: matrices.networkStatus,
       networkLoad: matrices.networkLoad,
@@ -303,7 +303,7 @@ exports.rerouting = ({
           flows.forEach((flowId) => {
             let flowReq =
               matrices.trafficRequirement[qualifiedBSID_CP[i]?.class];
-            let newSegmentList = helper.dijkstraAlgorithmWithConsole({
+            let newSegmentList = this.dijkstraAlgorithm({
               destination,
               trafficClass,
             });

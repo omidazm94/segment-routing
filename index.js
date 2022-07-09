@@ -1,5 +1,6 @@
 const utilities = require("./utilities");
 const matrices = require("./matrices");
+const WeightedGraphClass = require("./dijkstra").WeightedGraphClass;
 
 let maxBandwidth = 300;
 let done = false;
@@ -9,8 +10,20 @@ let networkLoad = matrices.networkLoad; // this is load on each link it also can
 let flow = "f1";
 // utilities.initializeNetworkLinksStatuses(networkLoad, maxBandwidth);
 let networkStatus = matrices.networkStatus;
+let graphLayout = matrices.graphLayout;
 
-console.log(networkStatus);
+let graph = new WeightedGraphClass();
+for (var id in graphLayout) graph.addVertex(id);
+
+console.log(graph.adjacencyList);
+console.log(
+  graph.Dijkstra({
+    startNode: "headEnd",
+    destination: "7",
+    trafficClass: matrices.currentTraffic[flow].class,
+    maxBandwidth: 300,
+  })
+);
 
 // Object.keys(matrices.currentTraffic).forEach((flow, index) => {
 let trafficClass = matrices.currentTraffic[flow].class;

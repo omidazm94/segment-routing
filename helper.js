@@ -334,3 +334,20 @@ exports.properDijkstraWithConsole = () => {
 
   console.log(graph.Dijkstra("A", "E"));
 };
+
+// for (var id in graphLayout) graph.addVertex(id);
+
+// for (var id in graphLayout) {
+//   graphLayout[id].forEach(function (aid) {
+//     let linkWeight = utilities.getLinkWeightBasedOnTrafficClass({
+//       linkId: id + "-" + aid,
+//       linkStatus: networkStatus[id + "-" + aid],
+//       linkLoad: networkLoad[id + "-" + aid],
+//       trafficRequirement: matrices.currentTraffic[flow].class,
+//       maxBandwidth,
+//     });
+//     console.log(id);
+//     console.log(aid);
+//     graph.addEdge(`${id}`, `${aid}`, linkWeight);
+//   });
+// }
