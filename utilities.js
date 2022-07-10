@@ -290,17 +290,18 @@ exports.rerouting = ({
         }
       });
     });
-    if (showLogs) console.log(qualifiedBSID_CP, "qualifiedBSID_CP, line:280");
+    if (showLogs) console.log(qualifiedBSID_CP, "qualifiedBSID_CP, line:293");
 
     //for each flow which is directed using this BSID, CP we will reroute them to other directions
     if (qualifiedBSID_CP?.length > 0) {
       for (let i = 0; i < qualifiedBSID_CP.length; i++) {
         let flows = Object.keys(matrices.routingMatrix).filter(
           (flowId) =>
-            matrices.routingMatrix[flowId]["BSID"] === BCP.BSID &&
-            matrices.routingMatrix[flowId]["CP"] === BCP.CP
+            matrices.routingMatrix[flowId]["BSID"] ===
+              qualifiedBSID_CP[i].BSID &&
+            matrices.routingMatrix[flowId]["CP"] === qualifiedBSID_CP[i].CP
         );
-        if (showLogs) console.log(flows, "flows , line:290");
+        if (showLogs) console.log(flows, "flows , line:304");
         let j = 0;
         let reRoutingNeeded = true;
         let tempNetworkLoad = { ...matrices.networkLoad };
@@ -589,8 +590,9 @@ exports.checkLinksOnPathNotMeetRequirement = ({
   bandwidthReq,
   delayReq,
 }) => {
+  let delayAdded = 0;
+  let violatesQoS = true;
   [source, ...segmentList].forEach((node, index) => {
-    let delayAdded = 0;
     if (index !== segmentList.length) {
       let linkId = node + "-" + segmentList[index];
       if (!Object.keys(matrices.networkLoad).find((key) => key === linkId))
@@ -598,14 +600,15 @@ exports.checkLinksOnPathNotMeetRequirement = ({
       let linkStatus = matrices.networkStatus[linkId];
       delayAdded += linkStatus.delay;
       if (
-        linkStatus.bandwidth < bandwidthReq ||
-        delayAdded < delayReq ||
-        linkStatus.status
+        linkStatus.bandwidth > bandwidthReq &&
+        delayAdded < delayReq &&
+        linkStatus.status &&
+        index === segmentList.length - 1
       )
-        return false;
+        violatesQoS = false;
     }
   });
-  return true;
+  return violatesQoS;
 };
 
 /*
