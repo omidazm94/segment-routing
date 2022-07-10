@@ -1,5 +1,6 @@
 const matrices = require("./matrices");
 const helper = require("./helper");
+const dijkstraAlgorithm = require("./dijkstra").dijkstraAlgorithm;
 
 /* 
   this method will check :
@@ -94,7 +95,7 @@ exports.checkAvailablePath = ({
       if (showLogs)
         console.log(candidatePathKey, "new candidatePathKey, line: 81");
 
-      segmentList = this.dijkstraAlgorithm({
+      segmentList = dijkstraAlgorithm({
         layout: matrices.graphLayout,
         networkStatus: matrices.networkStatus,
         networkLoad: matrices.networkLoad,
@@ -151,7 +152,7 @@ exports.checkAvailablePath = ({
     if (showLogs) console.log("tuple is new, line: 139");
 
     candidatePathKey = "cp" + Object.keys(matrices.candidatePathMatrix).length;
-    segmentList = this.dijkstraAlgorithm({
+    segmentList = dijkstraAlgorithm({
       layout: matrices.graphLayout,
       networkStatus: matrices.networkStatus,
       networkLoad: matrices.networkLoad,
@@ -221,6 +222,22 @@ exports.rerouting = ({
   delayReq,
   showLogs = true,
 }) => {
+  console.log(
+    "***************************" +
+      flow +
+      "*************************************"
+  );
+  console.log(source + " : " + destination);
+  console.log(trafficClass);
+  console.log(bandwidthReq);
+  console.log(delayReq);
+  console.log(matrices.currentTraffic);
+  console.log(matrices.candidatePathMatrix);
+  console.log(matrices.policyMatrix);
+  console.log(matrices.routingMatrix);
+  console.log(matrices.trafficRequirement);
+  console.log(matrices.networkLoad);
+  console.log(matrices.networkStatus);
   // im this line we look for other BSIDs whose class is different
   let similarSourceDestinations = Object.keys(
     matrices.mapPolicyBSIDtoSourceDestination
@@ -233,6 +250,7 @@ exports.rerouting = ({
     )
       return BSID;
   }); // result = [[source,destination1,c2],[source,destination2,c2]]
+  console.log(similarSourceDestinations);
   if (showLogs)
     console.log(
       similarSourceDestinations,
@@ -262,6 +280,7 @@ exports.rerouting = ({
       let SDC = matrices.mapPolicyBSIDtoSourceDestination[BSID]; // source,des,class
       matrices.policyMatrix[SDC[0]][SDC[1]][SDC[2]].forEach((key) => {
         let segmentList = matrices.candidatePathMatrix[key].segmentList;
+        // console.log(segmentList, "segment list line:278");
         //check if segment list is good
         if (showLogs)
           console.log(
@@ -295,13 +314,15 @@ exports.rerouting = ({
     //for each flow which is directed using this BSID, CP we will reroute them to other directions
     if (qualifiedBSID_CP?.length > 0) {
       for (let i = 0; i < qualifiedBSID_CP.length; i++) {
+        let candidatePathCurrentSegmentList = qualifiedBSID_CP[i].segmentList;
         let flows = Object.keys(matrices.routingMatrix).filter(
           (flowId) =>
             matrices.routingMatrix[flowId]["BSID"] ===
               qualifiedBSID_CP[i].BSID &&
             matrices.routingMatrix[flowId]["CP"] === qualifiedBSID_CP[i].CP
         );
-        if (showLogs) console.log(flows, "flows , line:304");
+        // if (showLogs)
+        // console.log(flows, "flows , line:319");
         let j = 0;
         let reRoutingNeeded = true;
         let tempNetworkLoad = { ...matrices.networkLoad };
@@ -313,21 +334,23 @@ exports.rerouting = ({
           flows.forEach((flowId) => {
             let flowReq =
               matrices.trafficRequirement[qualifiedBSID_CP[i]?.class];
-            let newSegmentList = this.dijkstraAlgorithm({
+            console.log(flowReq, "flowReq, line:332");
+            let newSegmentList = dijkstraAlgorithm({
               destination,
-              trafficClass,
+              trafficClass: qualifiedBSID_CP[i]?.class,
+              previousSegmentList: candidatePathCurrentSegmentList,
             });
             if (showLogs)
-              console.log(newSegmentList, "newSegmentList, line:307");
+              console.log(newSegmentList, "newSegmentList, line:338");
             if (newSegmentList) {
-              let newFlowBindingSID = Object.keys(
-                matrices.mapPolicyBSIDtoSourceDestination
-              ).length;
+              let newFlowBindingSID =
+                "BSID" +
+                Object.keys(matrices.mapPolicyBSIDtoSourceDestination).length;
               if (showLogs)
-                console.log(newFlowBindingSID, "newFlowBindingSID, line:313");
+                console.log(newFlowBindingSID, "newFlowBindingSID, line:344");
               let newCP =
                 "cp" + Object.keys(matrices.candidatePathMatrix).length;
-              if (showLogs) console.log(newCP, "newCP, line:316");
+              if (showLogs) console.log(newCP, "newCP, line:347");
               tempRoutingMatrix[flowId] = {
                 BSID: newFlowBindingSID,
                 CP: newCP,
@@ -345,35 +368,60 @@ exports.rerouting = ({
                 source,
                 networkLoad: tempNetworkLoad,
               });
-              if (showLogs)
-                console.log(
-                  checkIfFlowCanBeRouted,
-                  "checkIfFlowCanBeRouted, line:337"
-                );
+              // if (showLogs)
+              console.log(
+                checkIfFlowCanBeRouted,
+                "checkIfFlowCanBeRouted, line:371"
+              );
+              console.log(tempRoutingMatrix);
               if (!checkIfFlowCanBeRouted) {
                 let newCP =
                   "cp" + Object.keys(matrices.candidatePathMatrix).length;
                 let newFlowBindingSID = qualifiedBSID_CP[i]?.BSID;
                 if (showLogs)
-                  console.log(newFlowBindingSID, "newFlowBindingSID, line:344");
+                  console.log(newFlowBindingSID, "newFlowBindingSID, line:378");
                 tempRoutingMatrix[flow] = {
                   BSID: newFlowBindingSID,
                   CP: newCP,
                 };
-                if (showLogs)
-                  console.log(tempRoutingMatrix, "tempRoutingMatrix, line:350");
+                // if (showLogs)
+                console.log(tempRoutingMatrix, "tempRoutingMatrix, line:385");
                 this.updateLinkLoadsOnPath({
                   bandwidth: bandwidthReq,
                   segmentList: qualifiedBSID_CP[i].segmentList,
                   source,
                   tempNetworkLoad,
                 });
+                //
+                this.updatePolicyMatrix({
+                  source,
+                  destination,
+                  trafficClass,
+                  candidatePathKey: newCP,
+                });
+                matrices.candidatePathMatrix[newCP] = {
+                  ...matrices.candidatePathMatrix[newCP],
+                  segmentList: qualifiedBSID_CP[i].segmentList,
+                  status: true,
+                  metric: matrices.trafficRequirement[trafficClass].criteria,
+                };
+                // these must be updated not created cause we have these pairs
+
+                matrices.mapPolicyBSIDtoSourceDestination[newFlowBindingSID] = [
+                  source,
+                  destination,
+                  trafficClass,
+                ];
+                //
+
+                // matrices.policyMatrix[source]
                 matrices.networkLoad = tempNetworkLoad;
                 matrices.routingMatrix = tempRoutingMatrix;
                 reRoutingNeeded = false;
               }
             }
             if (j === flows?.length - 1 && !reRoutingNeeded) {
+              console.log("no fucking way");
               if (showLogs)
                 console.log(
                   j === flows?.length - 1 && !reRoutingNeeded,
@@ -403,92 +451,6 @@ exports.rerouting = ({
     // when similar segment list not found
     console.log("congestion occurred");
   }
-};
-
-/*
-  customized dijkstra algo
-  this will find segment list based on traffic requirement
-*/
-exports.dijkstraAlgorithm = ({
-  layout = matrices.graphLayout,
-  startNode = "headEnd",
-  networkStatus = matrices.networkStatus,
-  networkLoad = matrices.networkLoad,
-  trafficClass,
-  destination,
-  maxBandwidth = 300, // this is used to reverse the impact of bandwidth
-}) => {
-  const trafficRequirement = matrices.trafficRequirement;
-
-  const self = this;
-  // var layout = {
-  //   'R': ['2'],
-  //   '2': ['3','4'],
-  let graph = {};
-  //convert uni-directional to bi-directional graph
-  for (var id in layout) {
-    if (!graph[id]) graph[id] = {};
-    layout[id].forEach(function (aid) {
-      let linkWeight = self.getLinkWeightBasedOnTrafficClass({
-        linkId: id + "-" + aid,
-        linkStatus: networkStatus[id + "-" + aid],
-        linkLoad: networkLoad[id + "-" + aid],
-        trafficRequirement: trafficRequirement[trafficClass],
-        maxBandwidth,
-      });
-
-      graph[id][aid] = linkWeight;
-      if (!graph[aid]) graph[aid] = {};
-      graph[aid][id] = linkWeight;
-    });
-  }
-
-  var solutions = {};
-  solutions[startNode] = [];
-  solutions[startNode].dist = 0;
-
-  while (true) {
-    var parent = null;
-    var nearest = null;
-    var dist = Infinity;
-
-    //for each existing solution
-    //distance is calculated from starting node
-    for (var currentNode in solutions) {
-      if (!solutions[currentNode]) continue;
-      var distanceToCurrentNode = solutions[currentNode].dist;
-      var adj = graph[currentNode];
-      //for each of its adjacent nodes...
-      for (var currentAdj in adj) {
-        //without a solution already...
-        if (solutions[currentAdj]) continue;
-        //choose nearest node with lowest *total* cost
-        var distanceFromCurrentAdj = adj[currentAdj] + distanceToCurrentNode;
-        let delayCondition =
-          trafficClass === "c1"
-            ? distanceFromCurrentAdj < trafficRequirement[trafficClass].delay
-            : true;
-        if (distanceFromCurrentAdj < dist && delayCondition) {
-          //reference parent
-          parent = solutions[currentNode];
-          nearest = currentAdj;
-          dist = distanceFromCurrentAdj;
-        }
-      }
-    }
-
-    //no more solutions
-    if (dist === Infinity) {
-      break;
-    }
-
-    //extend parent's solution path
-    solutions[nearest] = parent.concat(nearest);
-    //extend parent's cost
-    solutions[nearest].dist = dist;
-  }
-
-  return solutions[destination];
 };
 
 /*

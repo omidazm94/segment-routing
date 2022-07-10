@@ -36,6 +36,7 @@ Object.keys(matrices.currentTraffic).forEach((flow, index) => {
     showLogs,
   });
 
+  console.log(matrices.routingMatrix);
   if (!sol) {
     if (showLogs) {
       console.log(
@@ -58,11 +59,12 @@ Object.keys(matrices.currentTraffic).forEach((flow, index) => {
       maxBandwidth,
       showLogs,
     });
+    console.log(matrices.routingMatrix, "after rerouting");
   }
   if (index === Object.keys(matrices.currentTraffic).length - 1) done = true;
 });
 
-if (done) {
+if (done && showLogs) {
   console.log(matrices.graphLayout, "graphLayout");
   console.log(matrices.trafficRequirement, "graphLayout");
   console.log(matrices.networkLoad, "networkLoad");

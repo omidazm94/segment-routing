@@ -1,175 +1,105 @@
-const utilities = require("./utilities");
 const matrices = require("./matrices");
-//Dijkstra algorithm is used to find the shortest distance between two nodes inside a valid weighted graph. Often used in Google Maps, Network Router etc.
+const helper = require("./helper");
+const utilities = require("./utilities");
 
-//helper class for PriorityQueue
-class Node {
-  constructor(val, priority) {
-    this.val = val;
-    this.priority = priority;
-  }
-}
+/*
+  customized dijkstra algo
+  this will find segment list based on traffic requirement
+*/
+exports.dijkstraAlgorithm = ({
+  layout = matrices.graphLayout,
+  startNode = "headEnd",
+  networkStatus = matrices.networkStatus,
+  networkLoad = matrices.networkLoad,
+  trafficClass,
+  destination,
+  maxBandwidth = 300, // this is used to reverse the impact of bandwidth
+  previousSegmentList = [],
+}) => {
+  const trafficRequirement = matrices.trafficRequirement;
+  // links that has been on the previous segment list and we don't want to go over them again
+  let LinksThatNotAllowed = [];
+  previousSegmentList.forEach((node, index) => {
+    if (index != segmentList.length - 1)
+      LinksThatNotAllowed.push(
+        previousSegmentList[index] + "-" + previousSegmentList[index + 1]
+      );
+  });
 
-class PriorityQueue {
-  constructor() {
-    this.values = [];
-  }
-  enqueue(val, priority) {
-    let newNode = new Node(val, priority);
-    this.values.push(newNode);
-    this.bubbleUp();
-  }
-  bubbleUp() {
-    let idx = this.values.length - 1;
-    const element = this.values[idx];
-    while (idx > 0) {
-      let parentIdx = Math.floor((idx - 1) / 2);
-      let parent = this.values[parentIdx];
-      if (element.priority >= parent.priority) break;
-      this.values[parentIdx] = element;
-      this.values[idx] = parent;
-      idx = parentIdx;
-    }
-  }
-  dequeue() {
-    const min = this.values[0];
-    const end = this.values.pop();
-    if (this.values.length > 0) {
-      this.values[0] = end;
-      this.sinkDown();
-    }
-    return min;
-  }
-  sinkDown() {
-    let idx = 0;
-    const length = this.values.length;
-    const element = this.values[0];
-    while (true) {
-      let leftChildIdx = 2 * idx + 1;
-      let rightChildIdx = 2 * idx + 2;
-      let leftChild, rightChild;
-      let swap = null;
+  // var layout = {
+  //   'R': ['2'],
+  //   '2': ['3','4'],
+  let graph = {};
+  //convert uni-directional to bi-directional graph
+  for (var id in layout) {
+    if (!graph[id]) graph[id] = {};
+    layout[id].forEach(function (aid) {
+      let linkWeight = 0;
+      let linkId = id + "-" + aid;
 
-      if (leftChildIdx < length) {
-        leftChild = this.values[leftChildIdx];
-        if (leftChild.priority < element.priority) {
-          swap = leftChildIdx;
-        }
-      }
-      if (rightChildIdx < length) {
-        rightChild = this.values[rightChildIdx];
-        if (
-          (swap === null && rightChild.priority < element.priority) ||
-          (swap !== null && rightChild.priority < leftChild.priority)
-        ) {
-          swap = rightChildIdx;
-        }
-      }
-      if (swap === null) break;
-      this.values[idx] = this.values[swap];
-      this.values[swap] = element;
-      idx = swap;
-    }
-  }
-}
-
-//Dijkstra's algorithm only works on a weighted graph.
-
-exports.WeightedGraphClass = class WeightedGraph {
-  constructor() {
-    this.adjacencyList = {};
-  }
-  addVertex(vertex) {
-    if (!this.adjacencyList[vertex]) this.adjacencyList[vertex] = [];
-  }
-  addEdge(vertex1, vertex2, weight) {
-    this.adjacencyList[vertex1].push({ node: vertex2, weight });
-    this.adjacencyList[vertex2].push({ node: vertex1, weight });
-  }
-  updateLinkWeight(vertex1, vertex2, weight) {
-    let v1 = this.adjacencyList[vertex1].find((v) => v.node === vertex2);
-    v1.weight = weight;
-    let v2 = this.adjacencyList[vertex2].find((v) => v.node === vertex1);
-    v2.weight = weight;
-  }
-  updateLinkWeights({
-    graphLayout = matrices.graphLayout,
-    trafficClass,
-    maxBandwidth,
-  }) {
-    let self = this;
-    for (var id in graphLayout)
-      graphLayout[id].forEach(function (aid) {
-        let linkWeight = utilities.getLinkWeightBasedOnTrafficClass({
-          linkId: id + "-" + aid,
-          linkStatus: matrices.networkStatus[id + "-" + aid],
-          linkLoad: matrices.networkLoad[id + "-" + aid],
-          trafficRequirement: matrices.trafficRequirement[trafficClass],
+      if (LinksThatNotAllowed.includes(linkId)) {
+        console.log(LinksThatNotAllowed.includes(linkId));
+        console.log(LinksThatNotAllowed);
+        linkWeight = Infinity;
+      } else
+        linkWeight = utilities.getLinkWeightBasedOnTrafficClass({
+          linkId,
+          linkStatus: networkStatus[id + "-" + aid],
+          linkLoad: networkLoad[id + "-" + aid],
+          trafficRequirement: trafficRequirement[trafficClass],
           maxBandwidth,
         });
 
-        let v1 = self.adjacencyList[id].find((v) => v.node === aid);
-        let v2 = self.adjacencyList[aid].find((v) => v.node === id);
-        if (v1?.node) {
-          v1.weight = linkWeight;
-          v2.weight = linkWeight;
-        } else {
-          self.addEdge(id, aid, linkWeight);
-        }
-      });
-  }
-  Dijkstra({ startNode, destination, trafficClass, maxBandwidth = 300 }) {
-    this.updateLinkWeights({
-      trafficClass,
-      maxBandwidth,
+      graph[id][aid] = linkWeight;
+      if (!graph[aid]) graph[aid] = {};
+      graph[aid][id] = linkWeight;
     });
-    const nodes = new PriorityQueue();
-    const distances = {};
-    const previous = {};
-    let path = []; //to return at end
-    let smallest;
-    //build up initial state
-    for (let vertex in this.adjacencyList) {
-      if (vertex === startNode) {
-        distances[vertex] = 0;
-        nodes.enqueue(vertex, 0);
-      } else {
-        distances[vertex] = Infinity;
-        nodes.enqueue(vertex, Infinity);
-      }
-      previous[vertex] = null;
-    }
-    // as long as there is something to visit
-    while (nodes.values.length) {
-      smallest = nodes.dequeue().val;
-      if (smallest === destination) {
-        //WE ARE DONE
-        //BUILD UP PATH TO RETURN AT END
-        while (previous[smallest]) {
-          path.push(smallest);
-          smallest = previous[smallest];
-        }
-        break;
-      }
-      if (smallest || distances[smallest] !== Infinity) {
-        for (let neighbor in this.adjacencyList[smallest]) {
-          //find neighboring node
-          let nextNode = this.adjacencyList[smallest][neighbor];
-          //calculate new distance to neighboring node
-          let candidate = distances[smallest] + nextNode.weight;
-          let nextNeighbor = nextNode.node;
-          if (candidate < distances[nextNeighbor]) {
-            //updating new smallest distance to neighbor
-            distances[nextNeighbor] = candidate;
-            //updating previous - How we got to neighbor
-            previous[nextNeighbor] = smallest;
-            //enqueue in priority queue with new priority
-            nodes.enqueue(nextNeighbor, candidate);
-          }
-        }
-      }
-    }
-    let segmentList = path.concat(smallest).reverse();
-    return segmentList?.length > 1 ? segmentList.slice(1) : segmentList;
   }
+
+  var solutions = {};
+  solutions[startNode] = [];
+  solutions[startNode].dist = 0;
+
+  while (true) {
+    var parent = null;
+    var nearest = null;
+    var dist = Infinity;
+
+    //for each existing solution
+    //distance is calculated from starting node
+    for (var currentNode in solutions) {
+      if (!solutions[currentNode]) continue;
+      var distanceToCurrentNode = solutions[currentNode].dist;
+      var adj = graph[currentNode];
+      //for each of its adjacent nodes...
+      for (var currentAdj in adj) {
+        //without a solution already...
+        if (solutions[currentAdj]) continue;
+        //choose nearest node with lowest *total* cost
+        var distanceFromCurrentAdj = adj[currentAdj] + distanceToCurrentNode;
+        let delayCondition =
+          trafficClass === "c1"
+            ? distanceFromCurrentAdj < trafficRequirement[trafficClass].delay
+            : true;
+        if (distanceFromCurrentAdj < dist && delayCondition) {
+          //reference parent
+          parent = solutions[currentNode];
+          nearest = currentAdj;
+          dist = distanceFromCurrentAdj;
+        }
+      }
+    }
+
+    //no more solutions
+    if (dist === Infinity) {
+      break;
+    }
+
+    //extend parent's solution path
+    solutions[nearest] = parent.concat(nearest);
+    //extend parent's cost
+    solutions[nearest].dist = dist;
+  }
+
+  return solutions[destination];
 };
