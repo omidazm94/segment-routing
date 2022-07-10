@@ -36,8 +36,9 @@ exports.checkAvailablePath = ({
     console.log(delayReq, " delayReq");
   }
 
+  // if tuple source destination and class exists (policy exist)
   if (BSID) {
-    if (showLogs) console.log(BSID, "find BSID, line: 38");
+    if (showLogs) console.log(BSID, "find BSID, line: 42");
     // check if there is a valid path on that candidate path
     let candidatePathKey = matrices.policyMatrix[source][destination]
       ? matrices.policyMatrix[source][destination][trafficClass]?.find(
@@ -48,7 +49,17 @@ exports.checkAvailablePath = ({
     let segmentList =
       matrices.candidatePathMatrix[candidatePathKey]?.segmentList;
 
-    if (showLogs) console.log(segmentList, "segmentList, lined :50");
+    if (showLogs) {
+      console.log(segmentList, "segmentList, lined :50");
+      console.log(
+        this.checkLinksOnPathHasProblem({
+          bandwidthReq,
+          delayReq,
+          source,
+          segmentList,
+        })
+      );
+    }
     let candidatePathNotValid = this.checkLinksOnPathHasProblem({
       bandwidthReq,
       delayReq,
@@ -67,8 +78,9 @@ exports.checkAvailablePath = ({
         segmentList,
       });
       return segmentList;
-    } else {
-      // if candidate path violates qos requirements
+    }
+    // if candidate path violates qos requirements
+    else {
       if (showLogs)
         console.log(candidatePathKey, "old candidatePathKey, line: 71");
       if (candidatePathKey) {
@@ -94,11 +106,6 @@ exports.checkAvailablePath = ({
 
       // if dijkstra finds a path
       if (segmentList) {
-        //bacause previous BSID was valid but it's path was not so we have to update with a new BSID
-        // TODO : we don't need a new policy
-        BSID =
-          "BSID" +
-          Object.keys(matrices.mapPolicyBSIDtoSourceDestination).length;
         this.updatePolicyMatrix({
           source,
           destination,
@@ -138,9 +145,11 @@ exports.checkAvailablePath = ({
       }
       return false;
     }
-  } else {
+  }
+  // if tuple source destination and class is new
+  else {
     if (showLogs) console.log("tuple is new, line: 139");
-    // if tuple source destination and class is new
+
     candidatePathKey = "cp" + Object.keys(matrices.candidatePathMatrix).length;
     segmentList = this.dijkstraAlgorithm({
       layout: matrices.graphLayout,
@@ -545,9 +554,10 @@ exports.checkLinksOnPathHasProblem = ({
   networkLoad = matrices.networkLoad,
   networkStatus = matrices.networkStatus,
 }) => {
+  let delayAdded = 0;
+  let violatesQoS = true;
   if (segmentList) {
     [source, ...segmentList].forEach((node, index) => {
-      let delayAdded = 0;
       if (index !== segmentList.length) {
         let linkId = node + "-" + segmentList[index];
         if (!Object.keys(networkLoad).find((key) => key === linkId))
@@ -555,16 +565,18 @@ exports.checkLinksOnPathHasProblem = ({
         let linkStatus = networkStatus[linkId];
         let linkLoad = networkLoad[linkId];
         delayAdded += linkStatus.delay;
+        // on last iteration set the flag
         if (
-          linkStatus.bandwidth - linkLoad < bandwidthReq ||
-          delayAdded < delayReq ||
-          linkStatus.status
+          linkStatus.bandwidth - linkLoad > bandwidthReq &&
+          delayAdded < delayReq &&
+          linkStatus.status &&
+          index === segmentList.length - 1
         )
-          return false;
+          violatesQoS = false;
       }
     });
-    return true;
-  } else return true;
+    return violatesQoS;
+  } else return violatesQoS;
 };
 
 /*
