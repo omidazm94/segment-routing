@@ -173,3 +173,16 @@ exports.WeightedGraphClass = class WeightedGraph {
     return segmentList?.length > 1 ? segmentList.slice(1) : segmentList;
   }
 };
+
+// console.log(graph.adjacencyList);
+// console.log(
+//   graph.Dijkstra({
+//     startNode: "headEnd",
+//     destination: "7",
+//     trafficClass: matrices.currentTraffic[flow].class,
+//     maxBandwidth: 300,
+//   })
+// );
+
+// let graph = new WeightedGraphClass();
+// for (var id in graphLayout) graph.addVertex(id);
