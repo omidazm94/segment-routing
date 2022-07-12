@@ -11,7 +11,9 @@ let showReroutingLogs = false;
 let flow = "f1";
 
 utilities.initializeNetworkLinksLoad(matrices.graphLayout);
-// utilities.initializeNetworkLinksStatuses(networkLoad, maxBandwidth);
+utilities.initializeNetworkLinksStatuses(matrices.networkLoad, maxBandwidth);
+
+console.log(matrices.networkStatus);
 
 Object.keys(matrices.currentTraffic).forEach((flow, index) => {
   let trafficClass = matrices.currentTraffic[flow].class;

@@ -222,16 +222,14 @@ exports.initializeNetworkLinksLoad = (graphLayout, max = 10, min = 1) => {
 */
 exports.initializeNetworkLinksStatuses = (
   networkLoad,
-  maxBandwidth = 300,
-  min = maxBandwidth / 10
+  maxBandwidth = 500,
+  min = maxBandwidth / 5
 ) => {
   Object.keys(networkLoad).forEach((link) => {
     matrices.networkStatus[link] = {
       status: true,
       bandwidth: Math.floor(Math.random() * (maxBandwidth - min + 1) + min),
-      delay: Math.floor(
-        Math.random() * (maxBandwidth / 10 - min / 100 + 1) + min / 100
-      ),
+      delay: Math.floor(Math.random() * (min / 10 - min / 100 + 1) + min / 100),
       distance: Math.floor(Math.random() * (maxBandwidth - min + 1) + min),
     };
   });

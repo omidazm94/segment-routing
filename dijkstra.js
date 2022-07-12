@@ -20,7 +20,7 @@ exports.dijkstraAlgorithm = ({
   // links that has been on the previous segment list and we don't want to go over them again
   let LinksThatNotAllowed = [];
   previousSegmentList.forEach((node, index) => {
-    if (index != segmentList.length - 1)
+    if (index != previousSegmentList.length - 1)
       LinksThatNotAllowed.push(
         previousSegmentList[index] + "-" + previousSegmentList[index + 1]
       );
