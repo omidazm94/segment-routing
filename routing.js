@@ -14,6 +14,7 @@ exports.routing = ({
   trafficClass,
   bandwidthReq,
   delayReq,
+  duration,
   maxBandwidth,
   showLogs = true,
 }) => {
@@ -78,6 +79,13 @@ exports.routing = ({
         source,
         segmentList,
       });
+      // setTimeout(() => {
+      //   utilities.updateLinkLoadsOnPath({
+      //     bandwidth: -bandwidthReq,
+      //     source,
+      //     segmentList,
+      //   });
+      // }, duration);
       return segmentList;
     }
     // if candidate path violates qos requirements
@@ -96,6 +104,7 @@ exports.routing = ({
         console.log(candidatePathKey, "new candidatePathKey, line: 81");
 
       segmentList = dijkstraAlgorithm({
+        source,
         layout: matrices.graphLayout,
         networkStatus: matrices.networkStatus,
         networkLoad: matrices.networkLoad,
@@ -142,6 +151,13 @@ exports.routing = ({
           source,
           segmentList,
         });
+        // setTimeout(() => {
+        //   utilities.updateLinkLoadsOnPath({
+        //     bandwidth: -bandwidthReq,
+        //     source,
+        //     segmentList,
+        //   });
+        // }, duration);
         return segmentList;
       }
       return false;
@@ -153,6 +169,7 @@ exports.routing = ({
 
     candidatePathKey = "cp" + Object.keys(matrices.candidatePathMatrix).length;
     segmentList = dijkstraAlgorithm({
+      source,
       layout: matrices.graphLayout,
       networkStatus: matrices.networkStatus,
       networkLoad: matrices.networkLoad,
@@ -201,6 +218,13 @@ exports.routing = ({
         source,
         segmentList,
       });
+      // setTimeout(() => {
+      //   utilities.updateLinkLoadsOnPath({
+      //     bandwidth: -bandwidthReq,
+      //     source,
+      //     segmentList,
+      //   });
+      // }, duration);
       return segmentList;
     } else {
       return false;

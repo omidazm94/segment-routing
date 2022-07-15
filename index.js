@@ -1,34 +1,36 @@
 const utilities = require("./utilities");
 const matrices = require("./matrices");
+const sTopology = require("./small-topology");
+const lTopolog = require("./large-topology");
 const routing = require("./routing").routing;
 const reRouting = require("./reRouting").reRouting;
 
-let maxBandwidth = 300;
+let maxBandwidth = 500;
 let done = false;
-let showLogs = true;
+let showLogs = false;
 let showRoutingLogs = false;
-let showReroutingLogs = false;
-let flow = "f1";
-
+let showReroutingLogs = true;
+let source = "seattle";
+matrices.graphLayout = sTopology.AbileneTopology;
+matrices.networkStatus = sTopology.networkStatus;
+matrices.currentTraffic = sTopology.currentTraffic10;
+matrices.nextTraffic = sTopology.nextTraffic10;
 utilities.initializeNetworkLinksLoad(matrices.graphLayout);
-utilities.initializeNetworkLinksStatuses(matrices.networkLoad, maxBandwidth);
-
-console.log(matrices.networkStatus);
 
 Object.keys(matrices.currentTraffic).forEach((flow, index) => {
   let trafficClass = matrices.currentTraffic[flow].class;
   let sol = routing({
     flow,
-    source: "headEnd",
+    source,
     destination: matrices.currentTraffic[flow].destination,
     trafficClass: matrices.currentTraffic[flow].class,
     bandwidthReq: matrices.trafficRequirement[trafficClass].bandwidth,
     delayReq: matrices.trafficRequirement[trafficClass].delay,
+    duration: matrices.trafficRequirement[trafficClass].duration,
     maxBandwidth,
     showLogs: showRoutingLogs,
   });
 
-  console.log(matrices.routingMatrix);
   if (!sol) {
     if (showLogs) {
       console.log(
@@ -43,16 +45,25 @@ Object.keys(matrices.currentTraffic).forEach((flow, index) => {
     }
     let rerouteSuccess = reRouting({
       flow,
-      source: "headEnd",
+      source,
       destination: matrices.currentTraffic[flow].destination,
       trafficClass: matrices.currentTraffic[flow].class,
       bandwidthReq: matrices.trafficRequirement[trafficClass].bandwidth,
       delayReq: matrices.trafficRequirement[trafficClass].delay,
+      duration: matrices.trafficRequirement[trafficClass].duration,
       maxBandwidth,
       showLogs: showReroutingLogs,
     });
-    console.log(matrices.routingMatrix, "after rerouting");
-    console.log(rerouteSuccess, "rerouteSuccess");
+    console.log(
+      "*************************** reroute result:" +
+        rerouteSuccess +
+        " **********************************"
+    );
+    console.log(matrices.routingMatrix);
+    console.log(matrices.candidatePathMatrix);
+    console.log(
+      "*************************************************************"
+    );
   }
   if (index === Object.keys(matrices.currentTraffic).length - 1) done = true;
 });

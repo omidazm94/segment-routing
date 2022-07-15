@@ -75,14 +75,6 @@ exports.checkLinksOnPathHasProblem = ({
         let linkLoad = networkLoad[linkId];
         delayAdded += linkStatus.delay;
         // on last iteration set the flag
-        if (index === segmentList.length - 1)
-          console.log(
-            linkStatus.bandwidth - linkLoad >= bandwidthReq,
-            delayAdded < delayReq,
-            linkStatus.status,
-            index === segmentList.length - 1
-          );
-
         if (
           linkStatus.bandwidth - linkLoad >= bandwidthReq &&
           delayAdded < delayReq &&
@@ -125,6 +117,23 @@ exports.checkLinksOnPathNotMeetRequirement = ({
     }
   });
   return violatesQoS;
+};
+
+/*
+  get links that will be congested if new traffic arrives
+*/
+exports.getCongestedLinks = ({ source, segmentList, bandwidthReq }) => {
+  let congestedLinks = [];
+  [source, ...segmentList].forEach((node, index) => {
+    if (index !== segmentList.length) {
+      let linkId = node + "-" + segmentList[index];
+      let linkStatus = matrices.networkStatus[linkId];
+      let linkLoad = matrices.networkLoad[linkId];
+      if (linkStatus.bandwidth - linkLoad < bandwidthReq)
+        congestedLinks.push(linkId);
+    }
+  });
+  return congestedLinks;
 };
 
 /*

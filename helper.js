@@ -32,7 +32,7 @@ exports.dijkstraAlgorithm1 = (startNode) => {
 };
 
 exports.dijkstraAlgorithmWithConsole = ({
-  startNode = "headEnd",
+  startNode,
   layout,
   trafficClass,
   destination,

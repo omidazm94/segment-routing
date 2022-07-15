@@ -8,7 +8,7 @@ const utilities = require("./utilities");
 */
 exports.dijkstraAlgorithm = ({
   layout = matrices.graphLayout,
-  startNode = "headEnd",
+  source,
   networkStatus = matrices.networkStatus,
   networkLoad = matrices.networkLoad,
   trafficClass,
@@ -56,9 +56,15 @@ exports.dijkstraAlgorithm = ({
     });
   }
 
+  console.log(graph);
+  console.log(layout);
+  console.log(source);
+  console.log(networkStatus);
+  console.log(destination);
+
   var solutions = {};
-  solutions[startNode] = [];
-  solutions[startNode].dist = 0;
+  solutions[source] = [];
+  solutions[source].dist = 0;
 
   while (true) {
     var parent = null;
