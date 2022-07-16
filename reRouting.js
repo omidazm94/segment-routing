@@ -7,7 +7,7 @@ const dijkstraAlgorithm = require("./dijkstra").dijkstraAlgorithm;
   first we look for packets or flows that have similar source and destination and different trafficClass
   in these segment lists, we will ? based on req or based on existing flows on this 
 */
-exports.reRouting = async ({
+exports.reRouting = ({
   flow,
   source,
   destination,
@@ -16,6 +16,7 @@ exports.reRouting = async ({
   delayReq,
   duration,
   showLogs = true,
+  maxBandwidth,
 }) => {
   if (showLogs) {
     console.log(
@@ -140,6 +141,7 @@ exports.reRouting = async ({
             trafficClass: qualifiedBSID_CP[i]?.class,
             previousSegmentList: candidatePathCurrentSegmentList,
             networkLoad: tempNetworkLoad,
+            maxBandwidth,
           });
           if (showLogs) console.log(newSegmentList, "newSegmentList, line:338");
           if (newSegmentList) {
@@ -229,7 +231,7 @@ exports.reRouting = async ({
                 preference: 100,
                 segmentList: qualifiedBSID_CP[i].segmentList,
                 status: true,
-                metric: matrices.trafficRequirement[trafficClass].criteria,
+                metric: trafficClass,
               };
 
               // update original network data
@@ -263,33 +265,34 @@ exports.reRouting = async ({
         }
       }
     }
-    // if (reRoutingNeeded)
-    //   return await reRoutingBasedOnCongestedLinks({
-    //     flow,
-    //     source,
-    //     destination,
-    //     trafficClass,
-    //     bandwidthReq,
-    //     delayReq,
-    //     duration,
-    //     showLogs: true,
-    //   });
-    // else
-    return true; //rerouting was successful
-  }
-  //  else if (reRoutingNeeded) {
-  //   return await reRoutingBasedOnCongestedLinks({
-  //     flow,
-  //     source,
-  //     destination,
-  //     trafficClass,
-  //     bandwidthReq,
-  //     delayReq,
-  //     duration,
-  //     showLogs: true,
-  //   });
-  // }
-  else {
+    if (reRoutingNeeded) {
+      console.log("go for second solution");
+      return reRoutingBasedOnCongestedLinks({
+        flow,
+        source,
+        destination,
+        trafficClass,
+        bandwidthReq,
+        delayReq,
+        duration,
+        maxBandwidth,
+        showLogs: true,
+      });
+    } else return true; //rerouting was successful
+  } else if (reRoutingNeeded) {
+    console.log("go for second solution");
+    return reRoutingBasedOnCongestedLinks({
+      flow,
+      source,
+      destination,
+      trafficClass,
+      bandwidthReq,
+      delayReq,
+      duration,
+      maxBandwidth,
+      showLogs: true,
+    });
+  } else {
     // when similar segment list not found
     console.log("congestion occurred");
     return false;
@@ -304,110 +307,93 @@ const reRoutingBasedOnCongestedLinks = ({
   bandwidthReq,
   delayReq,
   duration,
-  showLogs = true,
+  maxBandwidth,
+  showLogs = false,
 }) => {
   // try {
   let reRoutingNeeded = true;
   let policyCandidatePaths =
     matrices.policyMatrix[source][destination][trafficClass];
-  let candidatePathKey = policyCandidatePaths[0];
-  let BSID = Object.keys(matrices.mapPolicyBSIDtoSourceDestination).find(
-    (bindingSID) => {
-      let pair = matrices.mapPolicyBSIDtoSourceDestination[bindingSID];
-      return (
-        pair[0] === source &&
-        pair[1] === destination &&
-        pair[2] !== trafficClass
-      );
-    }
-  );
-  let segmentList = matrices.candidatePathMatrix[candidatePathKey].segmentList;
 
-  let linksThatWillBeCongested = utilities.getCongestedLinks({
-    source,
-    segmentList,
-    bandwidthReq,
-  });
+  if (policyCandidatePaths?.length > 0) {
+    let candidatePathKey = policyCandidatePaths[0];
+    let BSID = Object.keys(matrices.mapPolicyBSIDtoSourceDestination).find(
+      (bindingSID) => {
+        let pair = matrices.mapPolicyBSIDtoSourceDestination[bindingSID];
+        return (
+          pair[0] === source &&
+          pair[1] === destination &&
+          pair[2] !== trafficClass
+        );
+      }
+    );
+    let segmentList =
+      matrices.candidatePathMatrix[candidatePathKey].segmentList;
 
-  // look for candidate paths that include links that will be congested
-  let candidatePathsWithCongestedLinks = Object.keys(
-    matrices.candidatePathMatrix
-  )
-    .filter((cpKey) => {
-      let sl = [source, ...matrices.candidatePathMatrix[cpKey].segmentList];
-      let links = [];
-      sl.forEach((node, index) => {
-        if (index !== sl.length - 1) links.push(node + "-" + sl[index + 1]);
-      });
-      if (
-        linksThatWillBeCongested.every((element) => {
-          return links.includes(element);
-        })
-      )
-        return cpKey;
-    })
-    .sort((a, b) => {
-      let flowsRoutedBy1 = Object.values(matrices.routingMatrix).filter(
-        (obj) => obj.CP === a
-      )?.length;
-      let flowsRoutedBy2 = Object.values(matrices.routingMatrix).filter(
-        (obj) => obj.CP === b
-      )?.length;
-      return flowsRoutedBy1 - flowsRoutedBy2;
+    let linksThatWillBeCongested = utilities.getCongestedLinks({
+      source,
+      segmentList,
+      bandwidthReq,
     });
 
-  for (let i = 0; i < candidatePathsWithCongestedLinks.length; i++) {
-    let cpKey = candidatePathsWithCongestedLinks[i];
-    let candidatePathMetric = matrices.candidatePathMatrix[cpKey].metric;
-    let candidatePathCurrentSegmentList =
-      matrices.candidatePathMatrix[cpKey].segmentList;
-    let flows = Object.keys(matrices.routingMatrix).filter(
-      (flowId) => matrices.routingMatrix[flowId]["CP"] === cpKey
-    );
-    console.log(flows);
-    // for each candidate path we first change data on temp variables
-    let j = 0;
-    let tempNetworkLoad = { ...matrices.networkLoad };
-    let tempRoutingMatrix = { ...matrices.routingMatrix };
-    let tempCandidatePathMatrix = { ...matrices.candidatePathMatrix };
-    let tempMapPolicyBSIDtoSourceDestination = {
-      ...matrices.mapPolicyBSIDtoSourceDestination,
-    };
-    let tempPolicyMatrix = { ...matrices.policyMatrix };
-
-    if (!reRoutingNeeded) break;
-
-    while (reRoutingNeeded && j < flows?.length) {
-      // TODO: this has to be for to be stopped
-      // flows.forEach((flowId) => {
-      // for (let i = 0; i < flows.length; i++) {
-      let flowId = flows[j];
-      let flowReq = matrices.trafficRequirement[candidatePathMetric];
-
-      if (showLogs) console.log(flowReq, "flowReq, line:373");
-
-      let newSegmentList = dijkstraAlgorithm({
-        source,
-        destination,
-        trafficClass: candidatePathMetric,
-        previousSegmentList: candidatePathCurrentSegmentList,
-        networkLoad: tempNetworkLoad,
+    // look for candidate paths that include links that will be congested
+    let candidatePathsWithCongestedLinks = Object.keys(
+      matrices.candidatePathMatrix
+    )
+      .filter((cpKey) => {
+        if (matrices.candidatePathMatrix[cpKey].metric !== trafficClass) {
+          let sl = [source, ...matrices.candidatePathMatrix[cpKey].segmentList];
+          let links = [];
+          sl.forEach((node, index) => {
+            if (index !== sl.length - 1) links.push(node + "-" + sl[index + 1]);
+          });
+          if (
+            linksThatWillBeCongested.every((element) => {
+              return links.includes(element);
+            })
+          )
+            return cpKey;
+        }
+      })
+      .sort((a, b) => {
+        let flowsRoutedBy1 = Object.values(matrices.routingMatrix).filter(
+          (obj) => obj.CP === a
+        )?.length;
+        let flowsRoutedBy2 = Object.values(matrices.routingMatrix).filter(
+          (obj) => obj.CP === b
+        )?.length;
+        return flowsRoutedBy1 - flowsRoutedBy2;
       });
-      if (showLogs) console.log(newSegmentList, "newSegmentList, line:338");
-      if (newSegmentList) {
-        // this isn't really needed we can use current BSID
-        let newFlowBindingSID =
-          "BSID" +
-          Object.keys(matrices.mapPolicyBSIDtoSourceDestination).length;
-        if (showLogs)
-          console.log(newFlowBindingSID, "newFlowBindingSID, line:344");
-        let newCP = "cp" + Object.keys(matrices.candidatePathMatrix).length;
-        if (showLogs) console.log(newCP, "newCP, line:347");
-        // update routing matrix
-        tempRoutingMatrix[flowId] = {
-          BSID: newFlowBindingSID,
-          CP: newCP,
-        };
+
+    for (let i = 0; i < 1; i++) {
+      let cpKey = candidatePathsWithCongestedLinks[i];
+      let candidatePathMetric = matrices.candidatePathMatrix[cpKey].metric;
+      let candidatePathCurrentSegmentList =
+        matrices.candidatePathMatrix[cpKey].segmentList;
+      let flows = Object.keys(matrices.routingMatrix).filter(
+        (flowId) => matrices.routingMatrix[flowId]["CP"] === cpKey
+      );
+      // for each candidate path we first change data on temp variables
+      let j = 0;
+      let tempNetworkLoad = { ...matrices.networkLoad };
+      let tempRoutingMatrix = { ...matrices.routingMatrix };
+      let tempCandidatePathMatrix = { ...matrices.candidatePathMatrix };
+      let tempMapPolicyBSIDtoSourceDestination = {
+        ...matrices.mapPolicyBSIDtoSourceDestination,
+      };
+      let tempPolicyMatrix = { ...matrices.policyMatrix };
+
+      if (!reRoutingNeeded) break;
+
+      while (reRoutingNeeded && j < 1) {
+        // TODO: this has to be for to be stopped
+        // flows.forEach((flowId) => {
+        // for (let i = 0; i < flows.length; i++) {
+        let flowId = flows[j];
+        let flowReq = matrices.trafficRequirement[candidatePathMetric];
+
+        if (showLogs) console.log(flowReq, "flowReq, line:390");
+
         // delete load on previous links
         utilities.updateLinkLoadsOnPath({
           bandwidth: -flowReq.bandwidth,
@@ -415,91 +401,125 @@ const reRoutingBasedOnCongestedLinks = ({
           source,
           networkLoad: tempNetworkLoad,
         });
-        // add load on new links
-        utilities.updateLinkLoadsOnPath({
-          bandwidth: flowReq.bandwidth,
-          segmentList: newSegmentList,
-          source,
-          networkLoad: tempNetworkLoad,
-        });
-        // add new candidate path
-        tempCandidatePathMatrix[newCP] = {
-          segmentList: newSegmentList,
-          preference: 100,
-          metric: candidatePathMetric,
-          status: true,
-        };
-        // update policy matrix and add new candidate path
-        utilities.updatePolicyMatrix({
+
+        let newSegmentList = dijkstraAlgorithm({
           source,
           destination,
           trafficClass: candidatePathMetric,
-          candidatePathKey: newCP,
-        });
-
-        // check if there is enough bandwidth now
-        let checkIfFlowCanBeRouted = !utilities.checkLinksOnPathHasProblem({
-          bandwidthReq,
-          delayReq,
-          segmentList,
-          source,
+          previousSegmentList: candidatePathCurrentSegmentList,
+          linksThatWillBeCongested,
           networkLoad: tempNetworkLoad,
+          maxBandwidth,
+          showLogs,
         });
 
-        if (showLogs) {
-          console.log(tempNetworkLoad);
-          console.log(
-            checkIfFlowCanBeRouted,
-            "checkIfFlowCanBeRouted, line:371"
-          );
-        }
-
-        // if reRouting other flows successfully added required space
-        if (checkIfFlowCanBeRouted) {
-          console.log("second solution was successful");
-          tempRoutingMatrix[flow] = {
-            BSID: BSID,
-            CP: cpKey,
+        if (newSegmentList) {
+          // this isn't really needed we can use current BSID
+          let newFlowBindingSID =
+            "BSID" +
+            Object.keys(matrices.mapPolicyBSIDtoSourceDestination).length;
+          if (showLogs)
+            console.log(newFlowBindingSID, "newFlowBindingSID, line:344");
+          let newCP = "cp" + Object.keys(matrices.candidatePathMatrix).length;
+          if (showLogs) console.log(newCP, "newCP, line:347");
+          // update routing matrix
+          tempRoutingMatrix[flowId] = {
+            BSID: newFlowBindingSID,
+            CP: newCP,
           };
 
+          // add load on new links
           utilities.updateLinkLoadsOnPath({
-            bandwidth: bandwidthReq,
-            segmentList,
+            bandwidth: flowReq.bandwidth,
+            segmentList: newSegmentList,
             source,
-            tempNetworkLoad,
+            networkLoad: tempNetworkLoad,
+          });
+          // add new candidate path
+          tempCandidatePathMatrix[newCP] = {
+            segmentList: newSegmentList,
+            preference: 100,
+            metric: candidatePathMetric,
+            status: true,
+          };
+          // update policy matrix and add new candidate path
+          utilities.updatePolicyMatrix({
+            source,
+            destination,
+            trafficClass: candidatePathMetric,
+            candidatePathKey: newCP,
           });
 
-          // update original network data
-          matrices.networkLoad = { ...tempNetworkLoad };
-          matrices.routingMatrix = { ...tempRoutingMatrix };
-          matrices.candidatePathMatrix = { ...tempCandidatePathMatrix };
-          matrices.mapPolicyBSIDtoSourceDestination = {
-            ...tempMapPolicyBSIDtoSourceDestination,
-          };
-          matrices.policyMatrix = { ...tempPolicyMatrix };
+          // check if there is enough bandwidth now
+          let checkIfFlowCanBeRouted = !utilities.checkLinksOnPathHasProblem({
+            bandwidthReq,
+            delayReq,
+            segmentList,
+            source,
+            networkLoad: tempNetworkLoad,
+          });
 
-          reRoutingNeeded = false;
+          if (showLogs) {
+            console.log(tempNetworkLoad);
+            console.log(
+              checkIfFlowCanBeRouted,
+              "checkIfFlowCanBeRouted, line:371"
+            );
+          }
+
+          // if reRouting other flows successfully added required space
+          if (checkIfFlowCanBeRouted) {
+            console.log("second solution was successful");
+            tempRoutingMatrix[flow] = {
+              BSID: BSID,
+              CP: cpKey,
+            };
+
+            utilities.updateLinkLoadsOnPath({
+              bandwidth: bandwidthReq,
+              segmentList,
+              source,
+              tempNetworkLoad,
+            });
+
+            // update original network data
+            matrices.networkLoad = { ...tempNetworkLoad };
+            matrices.routingMatrix = { ...tempRoutingMatrix };
+            matrices.candidatePathMatrix = { ...tempCandidatePathMatrix };
+            matrices.mapPolicyBSIDtoSourceDestination = {
+              ...tempMapPolicyBSIDtoSourceDestination,
+            };
+            matrices.policyMatrix = { ...tempPolicyMatrix };
+
+            reRoutingNeeded = false;
+          }
+        } else {
+          // delete load on previous links
+          utilities.updateLinkLoadsOnPath({
+            bandwidth: flowReq.bandwidth,
+            segmentList: candidatePathCurrentSegmentList,
+            source,
+            networkLoad: tempNetworkLoad,
+          });
         }
-      }
-      // if we are at the end of flow list and rerouting was not successful we will reset temp data to their original value
-      if (j === flows?.length - 1 && reRoutingNeeded) {
-        if (showLogs) console.log("no result for candidate path: " + cpKey);
+        // if we are at the end of flow list and rerouting was not successful we will reset temp data to their original value
+        if (j === flows?.length - 1 && reRoutingNeeded) {
+          if (showLogs) console.log("no result for candidate path: " + cpKey);
 
-        tempNetworkLoad = { ...matrices.networkLoad };
-        tempRoutingMatrix = { ...matrices.routingMatrix };
-        tempCandidatePathMatrix = { ...matrices.candidatePathMatrix };
-        tempPolicyMatrix = { ...matrices.policyMatrix };
-        tempMapPolicyBSIDtoSourceDestination = {
-          ...matrices.mapPolicyBSIDtoSourceDestination,
-        };
+          tempNetworkLoad = { ...matrices.networkLoad };
+          tempRoutingMatrix = { ...matrices.routingMatrix };
+          tempCandidatePathMatrix = { ...matrices.candidatePathMatrix };
+          tempPolicyMatrix = { ...matrices.policyMatrix };
+          tempMapPolicyBSIDtoSourceDestination = {
+            ...matrices.mapPolicyBSIDtoSourceDestination,
+          };
+        }
+        j++;
       }
-      j++;
     }
-  }
 
-  return false;
-  // } catch {
-  //   console.log("fuck");
-  //   return false;
-  // }
+    return reRoutingNeeded;
+  } else {
+    return false;
+  }
 };

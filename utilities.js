@@ -9,14 +9,22 @@ exports.getLinkWeightBasedOnTrafficClass = ({
   linkLoad,
   trafficRequirement,
   maxBandwidth,
+  showLogs = false,
 }) => {
   let status = this.checkLinkLoad({
     linkId,
+    linkLoad,
     bandwidthReq: trafficRequirement.bandwidth,
     delayReq: trafficRequirement.delay,
   });
   let availableBandwidth =
     matrices.networkStatus[linkId].bandwidth - matrices.networkLoad[linkId];
+
+  if (showLogs) {
+    console.log(linkId, "linkid");
+    console.log(status);
+    console.log(availableBandwidth);
+  }
 
   if (status.available)
     if (trafficRequirement.criteria === "delay") {
@@ -39,13 +47,13 @@ exports.getLinkWeightBasedOnTrafficClass = ({
   bandwidth is available
   delay is met
 */
-exports.checkLinkLoad = ({ linkId, bandwidthReq, delayReq }) => {
+exports.checkLinkLoad = ({ linkId, bandwidthReq, delayReq, linkLoad }) => {
   let linkStatus = matrices.networkStatus[linkId];
   // بررسی بالا بودن لینک
   if (!linkStatus.status) return { available: false, status: "failed" };
   // if available bandwidth is enough or delay requirement has been met or not
   if (
-    linkStatus.bandwidth - matrices.networkLoad[linkId] < bandwidthReq ||
+    linkStatus.bandwidth - linkLoad < bandwidthReq ||
     linkStatus.delay > delayReq
   )
     return { available: false, status: "!qos" };

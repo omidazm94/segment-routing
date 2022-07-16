@@ -127,7 +127,7 @@ exports.routing = ({
           ...matrices.candidatePathMatrix[candidatePathKey],
           segmentList,
           status: true,
-          metric: matrices.trafficRequirement[trafficClass].criteria,
+          metric: trafficClass,
         };
         matrices.mapPolicyBSIDtoSourceDestination[BSID] = [
           source,
@@ -192,7 +192,7 @@ exports.routing = ({
         segmentList,
         status: true,
         preference: 100,
-        metric: matrices.trafficRequirement[trafficClass].criteria,
+        metric: trafficClass,
       };
       if (showLogs) {
         console.log(matrices.routingMatrix, "routingMatrix, line 168");

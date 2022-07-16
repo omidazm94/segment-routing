@@ -7,9 +7,9 @@ const reRouting = require("./reRouting").reRouting;
 
 let maxBandwidth = 500;
 let done = false;
-let showLogs = false;
+let showLogs = true;
 let showRoutingLogs = false;
-let showReroutingLogs = true;
+let showReroutingLogs = false;
 let source = "seattle";
 matrices.graphLayout = sTopology.AbileneTopology;
 matrices.networkStatus = sTopology.networkStatus;

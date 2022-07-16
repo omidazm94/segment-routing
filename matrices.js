@@ -17,7 +17,7 @@ exports.networkStatus = {};
 // p*2
 exports.trafficRequirement = {
   c1: { delay: 40, bandwidth: 10, criteria: "delay" }, // delay
-  c2: { delay: 150, bandwidth: 20, criteria: "normal" }, // normal
+  c2: { delay: 150, bandwidth: 40, criteria: "normal" }, // normal
   c3: { delay: 200, bandwidth: 100, criteria: "bandwidth" }, // bandwidth
 };
 

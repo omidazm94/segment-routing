@@ -15,16 +15,22 @@ exports.dijkstraAlgorithm = ({
   destination,
   maxBandwidth = 300, // this is used to reverse the impact of bandwidth
   previousSegmentList = [],
+  linksThatWillBeCongested = [],
+  showLogs = false,
 }) => {
   const trafficRequirement = matrices.trafficRequirement;
   // links that has been on the previous segment list and we don't want to go over them again
   let LinksThatNotAllowed = [];
-  previousSegmentList.forEach((node, index) => {
-    if (index != previousSegmentList.length - 1)
-      LinksThatNotAllowed.push(
-        previousSegmentList[index] + "-" + previousSegmentList[index + 1]
-      );
-  });
+  if (linksThatWillBeCongested?.length === 0)
+    previousSegmentList.forEach((node, index) => {
+      if (index != previousSegmentList.length - 1)
+        LinksThatNotAllowed.push(
+          previousSegmentList[index] + "-" + previousSegmentList[index + 1]
+        );
+    });
+  else {
+    LinksThatNotAllowed = [...linksThatWillBeCongested];
+  }
 
   // var layout = {
   //   'R': ['2'],
@@ -38,8 +44,6 @@ exports.dijkstraAlgorithm = ({
       let linkId = id + "-" + aid;
 
       if (LinksThatNotAllowed.includes(linkId)) {
-        console.log(LinksThatNotAllowed.includes(linkId));
-        console.log(LinksThatNotAllowed);
         linkWeight = Infinity;
       } else
         linkWeight = utilities.getLinkWeightBasedOnTrafficClass({
@@ -48,6 +52,7 @@ exports.dijkstraAlgorithm = ({
           linkLoad: networkLoad[id + "-" + aid],
           trafficRequirement: trafficRequirement[trafficClass],
           maxBandwidth,
+          showLogs,
         });
 
       graph[id][aid] = linkWeight;
@@ -55,12 +60,6 @@ exports.dijkstraAlgorithm = ({
       graph[aid][id] = linkWeight;
     });
   }
-
-  console.log(graph);
-  console.log(layout);
-  console.log(source);
-  console.log(networkStatus);
-  console.log(destination);
 
   var solutions = {};
   solutions[source] = [];
@@ -87,6 +86,7 @@ exports.dijkstraAlgorithm = ({
           trafficClass === "c1"
             ? distanceFromCurrentAdj < trafficRequirement[trafficClass].delay
             : true;
+
         if (distanceFromCurrentAdj < dist && delayCondition) {
           //reference parent
           parent = solutions[currentNode];
